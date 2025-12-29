@@ -11,61 +11,27 @@ const getSupabaseConfig = () => {
   const settingsStr = localStorage.getItem('lamu_settings');
   if (!settingsStr) return null;
   try {
-    const settings = JSON.parse(settingsStr);
-    if (settings.supabaseUrl && settings.supabaseKey) {
-      return {
-        url: settings.supabaseUrl.trim().replace(/\/$/, ''),
-        key: settings.supabaseKey.trim()
-      };
-    }
-  } catch (e) {
-    return null;
-  }
-  return null;
+    return JSON.parse(settingsStr);
+  } catch (e) { return null; }
 };
 
 export const isCloudConnected = async (): Promise<boolean> => {
   const config = getSupabaseConfig();
-  if (!config) {
-    lastCloudError = "No hay configuración guardada.";
-    return false;
-  }
+  if (!config?.supabaseUrl) return false;
   try {
-    const response = await fetch(`${config.url}/rest/v1/damage_records?select=id&limit=1`, {
-      headers: {
-        'apikey': config.key,
-        'Authorization': `Bearer ${config.key}`
-      }
+    const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=id&limit=1`, {
+      headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
     });
-    
-    if (response.ok) {
-      lastCloudError = null;
-      return true;
-    } else {
-      const err = await response.json();
-      // Error específico de Supabase cuando se usa la clave service_role
-      if (err.message && err.message.includes("secret API key")) {
-        lastCloudError = "⚠️ ERROR: Estás usando la clave 'service_role'. Debes usar la clave 'anon' (public) en el panel de Supabase -> API Settings.";
-      } else {
-        lastCloudError = err.message || `Error ${response.status}: ${response.statusText}`;
-      }
-      return false;
-    }
-  } catch (e: any) {
-    lastCloudError = e.message || "Error de red: Verifica la URL de Supabase.";
-    return false;
-  }
+    return response.ok;
+  } catch (e) { return false; }
 };
 
 export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
-  if (config) {
+  if (config?.supabaseUrl) {
     try {
-      const response = await fetch(`${config.url}/rest/v1/damage_records?select=*&order=timestamp.desc`, {
-        headers: {
-          'apikey': config.key,
-          'Authorization': `Bearer ${config.key}`
-        }
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc`, {
+        headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
       });
       if (response.ok) {
         const data = await response.json();
@@ -75,56 +41,50 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
           guild: r.guild,
           damageValue: r.damage_value,
           timestamp: r.timestamp,
-          screenshotUrl: r.screenshot_url
+          screenshotUrl: r.screenshot_url,
+          discordUser: r.discord_id ? {
+            id: r.discord_id,
+            username: r.discord_username,
+            avatar: r.discord_avatar
+          } : undefined
         }));
       }
     } catch (e) { console.error(e); }
   }
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 };
 
 export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>): Promise<DamageRecord> => {
   const timestamp = Date.now();
   const config = getSupabaseConfig();
   const id = crypto.randomUUID();
-  if (config) {
+  
+  if (config?.supabaseUrl) {
     try {
-      const response = await fetch(`${config.url}/rest/v1/damage_records`, {
+      await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
         method: 'POST',
         headers: {
-          'apikey': config.key,
-          'Authorization': `Bearer ${config.key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'apikey': config.supabaseKey,
+          'Authorization': `Bearer ${config.supabaseKey}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id: id,
+          id,
           player_name: record.playerName,
           guild: record.guild,
-          // Fixed: Access record.damageValue correctly instead of undefined record.damage_value
           damage_value: record.damageValue,
-          timestamp: timestamp,
-          screenshot_url: record.screenshotUrl
+          timestamp,
+          screenshot_url: record.screenshotUrl,
+          discord_id: record.discordUser?.id,
+          discord_username: record.discordUser?.username,
+          discord_avatar: record.discordUser?.avatar
         })
       });
-      if (response.ok) {
-        const result = await response.json();
-        const r = result[0];
-        // Ensure we map snake_case response back to camelCase frontend interface
-        return {
-          id: r.id,
-          playerName: r.player_name,
-          guild: r.guild,
-          damageValue: r.damage_value,
-          timestamp: r.timestamp,
-          screenshotUrl: r.screenshot_url
-        };
-      }
     } catch (e) { console.error(e); }
   }
+  
   const records = await getRecords();
-  const newRecord: DamageRecord = { ...record, id, timestamp };
+  const newRecord = { ...record, id, timestamp };
   records.push(newRecord);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   return newRecord;
@@ -132,80 +92,59 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
 
 export const deleteRecord = async (id: string): Promise<void> => {
   const config = getSupabaseConfig();
-  if (config) {
+  if (config?.supabaseUrl) {
     try {
-      await fetch(`${config.url}/rest/v1/damage_records?id=eq.${id}`, {
+      await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=eq.${id}`, {
         method: 'DELETE',
-        headers: {
-          'apikey': config.key,
-          'Authorization': `Bearer ${config.key}`
-        }
+        headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
       });
     } catch (e) { console.error(e); }
   }
   const records = await getRecords();
-  const filtered = records.filter(r => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records.filter(r => r.id !== id)));
 };
 
 export const clearAllData = async (): Promise<void> => {
   const config = getSupabaseConfig();
-  if (config) {
+  if (config?.supabaseUrl) {
     try {
-      await fetch(`${config.url}/rest/v1/damage_records?id=neq.0`, {
+      await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=neq.0`, {
         method: 'DELETE',
-        headers: {
-          'apikey': config.key,
-          'Authorization': `Bearer ${config.key}`
-        }
+        headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
       });
     } catch (e) { console.error(e); }
   }
   localStorage.removeItem(STORAGE_KEY);
-  localStorage.setItem(RESET_KEY, Date.now().toString());
 };
 
-export const checkAndPerformAutoReset = async (): Promise<boolean> => {
+export const checkAndPerformAutoReset = async (): Promise<void> => {
   const lastResetDone = parseInt(localStorage.getItem(RESET_KEY) || '0');
-  const now = new Date();
-  const lastMonday = new Date(now);
-  const day = now.getUTCDay();
-  const diff = (day === 0 ? 6 : day - 1);
-  lastMonday.setUTCDate(now.getUTCDate() - diff);
-  lastMonday.setUTCHours(17, 0, 0, 0);
-  if (now.getTime() < lastMonday.getTime()) {
-    lastMonday.setUTCDate(lastMonday.getUTCDate() - 7);
-  }
-  const threshold = lastMonday.getTime();
-  if (lastResetDone < threshold) {
+  const now = Date.now();
+  if (now - lastResetDone > 604800000) { // Una semana
     await clearAllData();
-    localStorage.setItem(RESET_KEY, threshold.toString());
-    return true;
+    localStorage.setItem(RESET_KEY, now.toString());
   }
-  return false;
 };
 
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
   const records = await getRecords();
   const statsMap = new Map<string, PlayerStats>();
-  records.forEach(record => {
-    const key = `${record.playerName}`;
-    const existing = statsMap.get(key);
+  records.forEach(r => {
+    const existing = statsMap.get(r.playerName);
     if (existing) {
-      existing.maxDamage = Math.max(existing.maxDamage, record.damageValue);
+      existing.maxDamage = Math.max(existing.maxDamage, r.damageValue);
       existing.totalEntries += 1;
-      existing.lastUpdated = Math.max(existing.lastUpdated, record.timestamp);
+      existing.lastUpdated = Math.max(existing.lastUpdated, r.timestamp);
     } else {
-      statsMap.set(key, {
-        playerName: record.playerName,
-        guild: record.guild,
-        maxDamage: record.damageValue,
+      statsMap.set(r.playerName, {
+        playerName: r.playerName,
+        guild: r.guild,
+        maxDamage: r.damageValue,
         totalEntries: 1,
-        lastUpdated: record.timestamp
+        lastUpdated: r.timestamp,
+        discordUser: r.discordUser
       });
     }
   });
-  return Array.from(statsMap.values())
-    .sort((a, b) => b.maxDamage - a.maxDamage)
-    .map((stat, index) => ({ ...stat, rank: index + 1 }));
+  return Array.from(statsMap.values()).sort((a, b) => b.maxDamage - a.maxDamage);
 };
