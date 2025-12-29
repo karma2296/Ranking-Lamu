@@ -3,19 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-// Definición global para que TypeScript no falle durante el build si process no existe
-declare global {
-  interface Window {
-    process: any;
-  }
-}
-
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
-  // Obtenemos la API KEY de forma segura
-  const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || "";
-  
-  // Siempre usamos un parámetro nombrado según las guías de @google/genai
-  const ai = new GoogleGenAI({ apiKey });
+  // Inicialización directa y segura según las guías oficiales
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   
   const mimeMatch = base64Image.match(/^data:(image\/[a-z]+);base64,/);
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
