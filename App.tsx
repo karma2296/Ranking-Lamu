@@ -86,11 +86,24 @@ const App: React.FC = () => {
   const handleAdminAuth = (e: React.FormEvent) => {
     e.preventDefault();
     const settingsStr = localStorage.getItem('lamu_settings');
-    const masterPass = settingsStr ? JSON.parse(settingsStr).adminPassword : 'admin123';
+    let masterPass = 'admin123'; // Valor por defecto absoluto
+    
+    if (settingsStr) {
+      try {
+        const settings = JSON.parse(settingsStr);
+        // Si el objeto existe pero no tiene contraseña, sigue siendo admin123
+        if (settings.adminPassword) {
+          masterPass = settings.adminPassword;
+        }
+      } catch (err) {
+        masterPass = 'admin123';
+      }
+    }
     
     if (adminPasswordInput === masterPass) {
       setIsAdminAuthenticated(true);
       setAuthError(false);
+      setAdminPasswordInput(''); // Limpiar para seguridad
     } else {
       setAuthError(true);
       setTimeout(() => setAuthError(false), 2000);
@@ -213,6 +226,7 @@ const App: React.FC = () => {
                 <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase text-xs tracking-widest">
                   Entrar al Panel
                 </button>
+                {authError && <p className="text-red-500 text-[10px] font-black uppercase tracking-tighter mt-2">Clave Incorrecta</p>}
               </form>
             </div>
           );
