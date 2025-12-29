@@ -43,7 +43,12 @@ export const isCloudConnected = async (): Promise<boolean> => {
       return true;
     } else {
       const err = await response.json();
-      lastCloudError = err.message || `Error ${response.status}: ${response.statusText}`;
+      // Error específico de Supabase cuando se usa la clave service_role
+      if (err.message && err.message.includes("secret API key")) {
+        lastCloudError = "⚠️ ERROR: Estás usando la clave 'service_role'. Debes usar la clave 'anon' (public) en el panel de Supabase -> API Settings.";
+      } else {
+        lastCloudError = err.message || `Error ${response.status}: ${response.statusText}`;
+      }
       return false;
     }
   } catch (e: any) {
@@ -54,7 +59,6 @@ export const isCloudConnected = async (): Promise<boolean> => {
 
 export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
-  
   if (config) {
     try {
       const response = await fetch(`${config.url}/rest/v1/damage_records?select=*&order=timestamp.desc`, {
@@ -63,7 +67,6 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
           'Authorization': `Bearer ${config.key}`
         }
       });
-      
       if (response.ok) {
         const data = await response.json();
         return data.map((r: any) => ({
@@ -75,11 +78,8 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
           screenshotUrl: r.screenshot_url
         }));
       }
-    } catch (e) {
-      console.error("Fallo fetch nube:", e);
-    }
+    } catch (e) { console.error(e); }
   }
-
   const data = localStorage.getItem(STORAGE_KEY);
   return data ? JSON.parse(data) : [];
 };
@@ -88,7 +88,6 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
   const timestamp = Date.now();
   const config = getSupabaseConfig();
   const id = crypto.randomUUID();
-
   if (config) {
     try {
       const response = await fetch(`${config.url}/rest/v1/damage_records`, {
@@ -103,21 +102,17 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           id: id,
           player_name: record.playerName,
           guild: record.guild,
-          damage_value: record.damageValue,
+          damage_value: record.damage_value,
           timestamp: timestamp,
           screenshot_url: record.screenshotUrl
         })
       });
-
       if (response.ok) {
         const result = await response.json();
         return result[0];
       }
-    } catch (e) {
-      console.error("Error save nube:", e);
-    }
+    } catch (e) { console.error(e); }
   }
-
   const records = await getRecords();
   const newRecord: DamageRecord = { ...record, id, timestamp };
   records.push(newRecord);
@@ -138,7 +133,6 @@ export const deleteRecord = async (id: string): Promise<void> => {
       });
     } catch (e) { console.error(e); }
   }
-
   const records = await getRecords();
   const filtered = records.filter(r => r.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
@@ -173,7 +167,6 @@ export const checkAndPerformAutoReset = async (): Promise<boolean> => {
     lastMonday.setUTCDate(lastMonday.getUTCDate() - 7);
   }
   const threshold = lastMonday.getTime();
-  
   if (lastResetDone < threshold) {
     await clearAllData();
     localStorage.setItem(RESET_KEY, threshold.toString());
@@ -185,7 +178,6 @@ export const checkAndPerformAutoReset = async (): Promise<boolean> => {
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
   const records = await getRecords();
   const statsMap = new Map<string, PlayerStats>();
-
   records.forEach(record => {
     const key = `${record.playerName}`;
     const existing = statsMap.get(key);
@@ -203,7 +195,6 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
       });
     }
   });
-
   return Array.from(statsMap.values())
     .sort((a, b) => b.maxDamage - a.maxDamage)
     .map((stat, index) => ({ ...stat, rank: index + 1 }));
