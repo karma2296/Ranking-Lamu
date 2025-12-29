@@ -4,15 +4,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
-  // Acceso seguro a la variable de entorno
+  // Intentar obtener la API KEY de forma segura
   let apiKey = '';
   try {
     apiKey = process.env.API_KEY || '';
   } catch (e) {
-    console.warn("No se pudo acceder a process.env directamente.");
+    apiKey = '';
   }
   
-  if (!apiKey) {
+  if (!apiKey || apiKey.length < 5) {
+    console.error("Servicio Gemini: API_KEY no configurada o inválida.");
     throw new Error("API_KEY_MISSING");
   }
 
@@ -23,8 +24,8 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
   const prompt = `Analiza esta captura de pantalla de un videojuego. 
-  Busca el nombre del jugador y el número de daño total. 
-  Responde únicamente con el JSON solicitado.`;
+  Busca el nombre del jugador (nickname) y el daño total infligido. 
+  Devuelve un JSON con 'playerName' y 'damageValue'.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -47,9 +48,10 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
       }
     });
 
-    return JSON.parse(response.text || '{}');
+    if (!response.text) return {};
+    return JSON.parse(response.text);
   } catch (error: any) {
-    console.error("Error en el servicio Gemini:", error);
+    console.error("Error en Gemini API:", error);
     throw error;
   }
 };
