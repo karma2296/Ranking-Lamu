@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppSettings } from '../types';
-import { clearAllData, getLastError, isCloudConnected } from '../services/dbService';
 
 interface SettingsProps {
   onReset?: () => void;
@@ -23,8 +22,14 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        setSettings({ ...parsed, adminPassword: parsed.adminPassword || 'admin123' });
-      } catch (e) { }
+        setSettings({ 
+          ...parsed, 
+          adminPassword: parsed.adminPassword || 'admin123',
+          discordClientId: parsed.discordClientId || ''
+        });
+      } catch (e) { 
+        console.error("Error cargando configuración local");
+      }
     }
   }, []);
 
@@ -32,6 +37,10 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
     localStorage.setItem('lamu_settings', JSON.stringify(settings));
     localStorage.setItem('lamu_discord_webhook', settings.discordWebhook); 
     setSaved(true);
+    
+    // Llamamos a onReset para que la App principal sepa que los ajustes cambiaron
+    if (onReset) onReset();
+    
     setTimeout(() => setSaved(false), 3000);
   };
 
@@ -69,23 +78,52 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="md:col-span-2 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
             <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Discord Client ID (Para Login)</label>
-            <input type="text" value={settings.discordClientId || ''} onChange={(e) => setSettings({...settings, discordClientId: e.target.value})} placeholder="Ej: 134123..." className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-indigo-500" />
+            <input 
+              type="text" 
+              value={settings.discordClientId || ''} 
+              onChange={(e) => setSettings({...settings, discordClientId: e.target.value})} 
+              placeholder="Ej: 1341234567890..." 
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-indigo-500 transition-all" 
+            />
             <p className="text-[9px] text-slate-500 mt-2 italic">Obtenlo en Discord Developer Portal > Tu App > OAuth2 > Client ID</p>
           </div>
           
           <div className="space-y-4">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Discord Webhook</label>
-            <input type="password" value={settings.discordWebhook} onChange={(e) => setSettings({...settings, discordWebhook: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-indigo-300" />
+            <input 
+              type="password" 
+              value={settings.discordWebhook} 
+              onChange={(e) => setSettings({...settings, discordWebhook: e.target.value})} 
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-indigo-300" 
+            />
           </div>
           
           <div className="space-y-4">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Contraseña Admin</label>
+            <input 
+              type="password" 
+              value={settings.adminPassword} 
+              onChange={(e) => setSettings({...settings, adminPassword: e.target.value})} 
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300" 
+            />
+          </div>
+
+          <div className="md:col-span-2 space-y-4">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Supabase URL</label>
-            <input type="text" value={settings.supabaseUrl} onChange={(e) => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300" />
+            <input 
+              type="text" 
+              value={settings.supabaseUrl} 
+              onChange={(e) => setSettings({...settings, supabaseUrl: e.target.value})} 
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300" 
+            />
           </div>
         </div>
         
-        <button onClick={handleSave} className={`w-full font-black py-5 rounded-2xl mt-8 transition-all uppercase text-xs tracking-widest ${saved ? 'bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-500'} text-white`}>
-          {saved ? 'Guardado Correctamente' : 'Guardar Todo'}
+        <button 
+          onClick={handleSave} 
+          className={`w-full font-black py-5 rounded-2xl mt-8 transition-all uppercase text-xs tracking-widest ${saved ? 'bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-500'} text-white shadow-xl active:scale-[0.98]`}
+        >
+          {saved ? '✓ Configuración Guardada' : 'Guardar Cambios'}
         </button>
       </div>
     </div>
