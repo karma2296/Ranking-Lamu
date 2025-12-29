@@ -35,11 +35,12 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
         if (result.damageValue) {
           setDamageValue(result.damageValue.toString());
         } else {
-          setError("No pudimos detectar el daño. Asegúrate de que los números sean legibles.");
+          setError("La IA no pudo encontrar el número de daño. ¿Es la captura correcta?");
           setDamageValue('');
         }
-      } catch (err) {
-        setError("Error con Lamu-AI. Inténtalo de nuevo.");
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Error con Lamu-AI. Inténtalo de nuevo.");
       } finally {
         setIsAnalyzing(false);
       }
@@ -50,7 +51,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!playerName || !damageValue) {
-      setError("Faltan datos por completar.");
+      setError("Por favor, asegúrate de tener el nombre y el daño antes de reportar.");
       return;
     }
 
@@ -83,7 +84,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
             <span>⚔️</span> Subir Daño al Boss
           </h2>
-          <p className="text-sm text-slate-500 mt-1">Sube tu captura y selecciona tu división del gremio.</p>
+          <p className="text-sm text-slate-500 mt-1">Sube tu captura y la IA hará el trabajo sucio.</p>
         </header>
 
         <div className="mb-8">
@@ -107,7 +108,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
                 {isAnalyzing && (
                   <div className="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center space-y-3">
                     <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm font-bold text-indigo-400 animate-pulse">Lamu-AI validando...</span>
+                    <span className="text-sm font-bold text-indigo-400 animate-pulse">Lamu-AI analizando...</span>
                   </div>
                 )}
               </div>
@@ -116,7 +117,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
                 <div className="text-5xl group-hover:scale-110 transition-transform duration-300">📸</div>
                 <div>
                   <p className="text-slate-300 font-bold text-lg">Subir captura del Boss</p>
-                  <p className="text-sm text-slate-500">La IA leerá los datos automáticamente</p>
+                  <p className="text-sm text-slate-500">Acepta JPG, PNG y capturas de móvil</p>
                 </div>
               </div>
             )}
@@ -125,7 +126,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">¿A qué división perteneces?</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Tu División</label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
@@ -136,7 +137,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
                     : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
                 }`}
               >
-                Lamu I (Principal)
+                Lamu I
               </button>
               <button
                 type="button"
@@ -147,14 +148,14 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
                     : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
                 }`}
               >
-                Lamu II (Secundario)
+                Lamu II
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tu Nickname</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nickname</label>
               <input
                 type="text"
                 value={playerName}
@@ -169,13 +170,17 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
                 type="text"
                 value={damageValue ? parseInt(damageValue).toLocaleString() : ''}
                 readOnly
-                placeholder="IA Detectando..."
+                placeholder="Esperando IA..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-4 font-mono text-xl text-emerald-400 cursor-not-allowed"
               />
             </div>
           </div>
 
-          {error && <p className="text-red-400 text-sm font-semibold">⚠️ {error}</p>}
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl">
+              <p className="text-red-400 text-sm font-medium">⚠️ {error}</p>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -186,7 +191,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20 shadow-2xl'
             }`}
           >
-            Confirmar y Reportar
+            Confirmar Reporte
           </button>
         </form>
       </div>
