@@ -1,14 +1,12 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
-  // Acceso seguro a la API Key evitando errores de referencia
-  const env = (typeof process !== 'undefined' && process.env) ? process.env : {};
-  const apiKey = env.API_KEY || "";
-  
-  const ai = new GoogleGenAI({ apiKey });
+  // Inicialización directa según las guías: const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   
   const mimeMatch = base64Image.match(/^data:(image\/[a-z]+);base64,/);
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
@@ -39,8 +37,7 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
       }
     });
 
-    const text = response.text;
-    const jsonStr = text?.trim();
+    const jsonStr = response.text?.trim();
     if (!jsonStr) return {};
     return JSON.parse(jsonStr);
   } catch (error: any) {
