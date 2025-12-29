@@ -17,7 +17,6 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
   });
   const [saved, setSaved] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [inviteLink, setInviteLink] = useState('');
   const [diagError, setDiagError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +29,7 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
           adminPassword: parsed.adminPassword || 'admin123'
         });
       } catch (e) {
-        console.error("Error cargando settings");
+        console.error("Error loading settings");
       }
     }
     checkStatus();
@@ -59,13 +58,11 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
     const encoded = btoa(JSON.stringify(configToShare));
     const baseUrl = window.location.href.split('#')[0];
     const fullLink = `${baseUrl}#setup=${encoded}`;
-    setInviteLink(fullLink);
     navigator.clipboard.writeText(fullLink);
-    alert("¡Link copiado! Pásalo a tus miembros.");
+    alert("Enlace de invitacion copiado al portapapeles.");
   };
 
-  const sqlCode = `
-CREATE TABLE IF NOT EXISTS damage_records (
+  const sqlCode = `CREATE TABLE IF NOT EXISTS damage_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   player_name TEXT NOT NULL,
   guild TEXT NOT NULL,
@@ -73,68 +70,45 @@ CREATE TABLE IF NOT EXISTS damage_records (
   timestamp BIGINT NOT NULL,
   screenshot_url TEXT
 );
-
--- Habilitar acceso público
 ALTER TABLE damage_records ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK (true);
-  `.trim();
+CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK (true);`;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-20 animate-in fade-in">
       
-      {/* DIAGNÓSTICO DE ERROR */}
       {diagError && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-6 text-red-400 shadow-xl">
           <h4 className="font-black text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-            <span>❌</span> Fallo de Sincronización
+            ⚠️ Error de Conexion
           </h4>
           <p className="text-sm font-medium bg-black/30 p-4 rounded-xl mb-4 leading-relaxed">
             {diagError}
           </p>
           
-          {(diagError?.includes("secret API key") || diagError?.includes("Forbidden")) ? (
-            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs">
-              <p className="font-bold mb-2">💡 Cómo solucionarlo (Mira tu captura):</p>
-              <ol className="list-decimal ml-4 space-y-2">
-                <li>En Supabase, ve a la pestaña <b>"Legacy anon, service_role API keys"</b>.</li>
-                <li>Busca la clave que dice <span className="bg-slate-800 px-1 rounded text-white font-mono">anon</span> <span className="bg-slate-700 px-1 rounded text-slate-300 font-mono text-[10px]">public</span>.</li>
-                <li>Haz clic en el botón <span className="border border-slate-500 px-2 py-0.5 rounded text-white bg-slate-800">Copy</span> que está a su derecha.</li>
-                <li>Pégala aquí abajo en <b>"Supabase API Key"</b> y dale a Guardar.</li>
-              </ol>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-xs text-red-400/70">Si el error dice "relation does not exist", ejecuta esto en el SQL Editor de Supabase:</p>
-              <div className="relative group">
-                <pre className="text-[10px] bg-slate-950 p-4 rounded-xl border border-red-500/20 overflow-x-auto text-slate-400 font-mono">
-                  {sqlCode}
-                </pre>
-                <button 
-                  onClick={() => { navigator.clipboard.writeText(sqlCode); alert("SQL Copiado"); }}
-                  className="absolute top-2 right-2 bg-red-500 text-white text-[9px] px-2 py-1 rounded font-bold hover:bg-red-400"
-                >
-                  Copiar SQL
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs">
+            <p className="font-bold mb-2">Instrucciones de reparacion:</p>
+            <ol className="list-decimal ml-4 space-y-1">
+              <li>Ve a Supabase &rarr; API Settings.</li>
+              <li>Usa la clave marcada como "anon" (public).</li>
+              <li>No uses la clave "service_role".</li>
+            </ol>
+          </div>
         </div>
       )}
 
-      {/* INVITACIÓN */}
       <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-500/30 rounded-3xl p-8 shadow-2xl">
-        <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">Sincronizar Gremio</h3>
-        <p className="text-indigo-200/70 text-sm mb-6">Genera un link para que tus miembros se conecten automáticamente.</p>
+        <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">Sincronizar Miembros</h3>
+        <p className="text-indigo-200/70 text-sm mb-6">Comparte la configuracion con otros administradores.</p>
         <button onClick={generateInviteLink} className="bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 px-8 rounded-2xl transition-all uppercase text-xs tracking-widest">
-          &rarr; Copiar Link de Invitación
+          Copiar Link de Invitacion
         </button>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-8">Configuración Maestra</h2>
+        <h2 className="text-2xl font-bold text-white mb-8">Ajustes del Sistema</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="md:col-span-2 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Clave Maestra Panel</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Password del Panel</label>
             <input type="text" value={settings.adminPassword} onChange={(e) => setSettings({...settings, adminPassword: e.target.value})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm outline-none focus:border-indigo-500" />
           </div>
           <div className="space-y-4">
@@ -143,25 +117,30 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
           </div>
           <div className="space-y-4">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Supabase URL</label>
-            <input type="text" placeholder="https://xyz.supabase.co" value={settings.supabaseUrl} onChange={(e) => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300 focus:border-indigo-500" />
+            <input type="text" value={settings.supabaseUrl} onChange={(e) => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300 focus:border-indigo-500" />
             
             <div className="mt-4">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Supabase API Key (Usar "anon")</label>
-              <p className="text-[9px] text-amber-500/70 mb-2 font-bold uppercase tracking-tighter italic">&iexcl;Usa la clave anon!</p>
-              <input type="password" placeholder="Pega el código JWT aquí..." value={settings.supabaseKey} onChange={(e) => setSettings({...settings, supabaseKey: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300 focus:border-indigo-500" />
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Supabase API Key (anon)</label>
+              <input type="password" value={settings.supabaseKey} onChange={(e) => setSettings({...settings, supabaseKey: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300 focus:border-indigo-500" />
             </div>
           </div>
         </div>
         <button onClick={handleSave} className={`w-full font-black py-5 rounded-2xl mt-8 transition-all uppercase text-xs tracking-widest ${saved ? 'bg-emerald-600' : 'bg-slate-800 hover:bg-slate-700'} text-white shadow-xl`}>
-          {saved ? 'Verificado' : 'Guardar y Conectar'}
+          {saved ? 'Cambios Guardados' : 'Guardar Configuracion'}
         </button>
       </div>
 
       <div className="bg-red-950/10 border border-red-900/30 rounded-3xl p-8">
-        <h3 className="text-sm font-black text-red-500 uppercase mb-4 tracking-widest">Zona Peligrosa</h3>
-        <button onClick={async () => { if(confirm('¿Borrar TODOS los datos?')) { setIsResetting(true); await clearAllData(); onReset?.(); setIsResetting(false); } }} disabled={isResetting} className="bg-red-600/10 hover:bg-red-600 border border-red-600/50 text-red-500 hover:text-white font-bold py-3 px-6 rounded-xl transition-all text-xs uppercase tracking-widest">
-          {isResetting ? 'Borrando...' : 'Reiniciar Temporada'}
-        </button>
+        <h3 className="text-sm font-black text-red-500 uppercase mb-4 tracking-widest">Zona de Peligro</h3>
+        <div className="flex flex-col gap-4">
+          <button onClick={async () => { if(confirm('¿Borrar todos los datos?')) { setIsResetting(true); await clearAllData(); onReset?.(); setIsResetting(false); } }} disabled={isResetting} className="bg-red-600/10 hover:bg-red-600 border border-red-600/50 text-red-500 hover:text-white font-bold py-3 px-6 rounded-xl transition-all text-xs uppercase tracking-widest">
+            {isResetting ? 'Borrando...' : 'Reiniciar Temporada'}
+          </button>
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <p className="text-[10px] text-slate-500 mb-2 uppercase font-bold">SQL para Supabase (Editor SQL):</p>
+            <pre className="text-[9px] text-indigo-400 font-mono overflow-x-auto">{sqlCode}</pre>
+          </div>
+        </div>
       </div>
     </div>
   );
