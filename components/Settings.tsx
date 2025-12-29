@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { AppSettings } from '../types';
 import { clearAllData, getLastError, isCloudConnected } from '../services/dbService';
@@ -87,10 +88,11 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
           
           <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs">
             <p className="font-bold mb-2">Instrucciones de reparacion:</p>
-            <ol className="list-decimal ml-4 space-y-1">
-              <li>Ve a Supabase &rarr; API Settings.</li>
-              <li>Usa la clave marcada como "anon" (public).</li>
-              <li>No uses la clave "service_role".</li>
+            <ol className="list-decimal ml-4 space-y-2">
+              <li>Ve a tu proyecto en <b>Supabase</b>.</li>
+              <li>Haz clic en el icono de <b>Settings</b> (engranaje) &rarr; <b>API</b>.</li>
+              <li>Busca <b>Project API keys</b>.</li>
+              <li>Copia la que dice <b>"anon"</b> (public). <b>NO</b> uses la de "service_role".</li>
             </ol>
           </div>
         </div>
@@ -100,7 +102,7 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
         <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">Sincronizar Miembros</h3>
         <p className="text-indigo-200/70 text-sm mb-6">Comparte la configuracion con otros administradores.</p>
         <button onClick={generateInviteLink} className="bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 px-8 rounded-2xl transition-all uppercase text-xs tracking-widest">
-          Copiar Link de Invitacion
+          Generar Link de Invitacion
         </button>
       </div>
 
