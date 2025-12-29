@@ -88,7 +88,7 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
             {diagError}
           </p>
           
-          {diagError.includes("secret API key") ? (
+          {diagError?.includes("secret API key") ? (
             <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs">
               <p className="font-bold mb-2">💡 Cómo solucionarlo:</p>
               <ol className="list-decimal ml-4 space-y-1">
