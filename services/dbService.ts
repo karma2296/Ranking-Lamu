@@ -3,6 +3,9 @@ import { DamageRecord, PlayerStats } from '../types';
 
 const STORAGE_KEY = 'lamu_guild_records_cloud_v4';
 const RESET_KEY = 'lamu_last_reset_timestamp';
+let lastCloudError: string | null = null;
+
+export const getLastError = () => lastCloudError;
 
 const getSupabaseConfig = () => {
   const settingsStr = localStorage.getItem('lamu_settings');
@@ -11,8 +14,8 @@ const getSupabaseConfig = () => {
     const settings = JSON.parse(settingsStr);
     if (settings.supabaseUrl && settings.supabaseKey) {
       return {
-        url: settings.supabaseUrl.replace(/\/$/, ''),
-        key: settings.supabaseKey
+        url: settings.supabaseUrl.trim().replace(/\/$/, ''),
+        key: settings.supabaseKey.trim()
       };
     }
   } catch (e) {
@@ -21,10 +24,12 @@ const getSupabaseConfig = () => {
   return null;
 };
 
-// Función para verificar si la conexión a la nube es exitosa
 export const isCloudConnected = async (): Promise<boolean> => {
   const config = getSupabaseConfig();
-  if (!config) return false;
+  if (!config) {
+    lastCloudError = "No hay configuración guardada.";
+    return false;
+  }
   try {
     const response = await fetch(`${config.url}/rest/v1/damage_records?select=id&limit=1`, {
       headers: {
@@ -32,8 +37,17 @@ export const isCloudConnected = async (): Promise<boolean> => {
         'Authorization': `Bearer ${config.key}`
       }
     });
-    return response.ok;
-  } catch (e) {
+    
+    if (response.ok) {
+      lastCloudError = null;
+      return true;
+    } else {
+      const err = await response.json();
+      lastCloudError = err.message || `Error ${response.status}: ${response.statusText}`;
+      return false;
+    }
+  } catch (e: any) {
+    lastCloudError = e.message || "Error de red: Verifica la URL de Supabase.";
     return false;
   }
 };
@@ -50,25 +64,19 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
         }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error de Supabase:", errorData);
-        throw new Error('Supabase Error');
+      if (response.ok) {
+        const data = await response.json();
+        return data.map((r: any) => ({
+          id: r.id,
+          playerName: r.player_name,
+          guild: r.guild,
+          damageValue: r.damage_value,
+          timestamp: r.timestamp,
+          screenshotUrl: r.screenshot_url
+        }));
       }
-      
-      const data = await response.json();
-      if (!Array.isArray(data)) return [];
-
-      return data.map((r: any) => ({
-        id: r.id,
-        playerName: r.player_name,
-        guild: r.guild,
-        damageValue: r.damage_value,
-        timestamp: r.timestamp,
-        screenshotUrl: r.screenshot_url
-      }));
     } catch (e) {
-      console.error("Fallo conexión a la nube, usando almacenamiento local temporal:", e);
+      console.error("Fallo fetch nube:", e);
     }
   }
 
@@ -92,7 +100,7 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           'Prefer': 'return=representation'
         },
         body: JSON.stringify({
-          id: id, // Enviamos el ID generado por nosotros para evitar problemas de RLS
+          id: id,
           player_name: record.playerName,
           guild: record.guild,
           damage_value: record.damageValue,
@@ -104,23 +112,14 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
       if (response.ok) {
         const result = await response.json();
         return result[0];
-      } else {
-        const errorText = await response.text();
-        console.error("Supabase rechazó el guardado:", errorText);
       }
     } catch (e) {
-      console.error("Error crítico guardando en la nube:", e);
+      console.error("Error save nube:", e);
     }
   }
 
-  // Fallback a LocalStorage
   const records = await getRecords();
-  const newRecord: DamageRecord = {
-    ...record,
-    id,
-    timestamp,
-  };
-  
+  const newRecord: DamageRecord = { ...record, id, timestamp };
   records.push(newRecord);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   return newRecord;
@@ -162,7 +161,8 @@ export const clearAllData = async (): Promise<void> => {
   localStorage.setItem(RESET_KEY, Date.now().toString());
 };
 
-export const getLastResetThreshold = (): number => {
+export const checkAndPerformAutoReset = async (): Promise<boolean> => {
+  const lastResetDone = parseInt(localStorage.getItem(RESET_KEY) || '0');
   const now = new Date();
   const lastMonday = new Date(now);
   const day = now.getUTCDay();
@@ -172,12 +172,7 @@ export const getLastResetThreshold = (): number => {
   if (now.getTime() < lastMonday.getTime()) {
     lastMonday.setUTCDate(lastMonday.getUTCDate() - 7);
   }
-  return lastMonday.getTime();
-};
-
-export const checkAndPerformAutoReset = async (): Promise<boolean> => {
-  const lastResetDone = parseInt(localStorage.getItem(RESET_KEY) || '0');
-  const threshold = getLastResetThreshold();
+  const threshold = lastMonday.getTime();
   
   if (lastResetDone < threshold) {
     await clearAllData();
@@ -194,12 +189,10 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
   records.forEach(record => {
     const key = `${record.playerName}`;
     const existing = statsMap.get(key);
-    
     if (existing) {
       existing.maxDamage = Math.max(existing.maxDamage, record.damageValue);
       existing.totalEntries += 1;
       existing.lastUpdated = Math.max(existing.lastUpdated, record.timestamp);
-      existing.guild = record.guild;
     } else {
       statsMap.set(key, {
         playerName: record.playerName,
