@@ -15,7 +15,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,7 +24,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
 
     setError(null);
     setIsAnalyzing(true);
-    setIsApiKeyMissing(false);
+    setManualMode(false);
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -32,19 +32,29 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
       setPreviewUrl(base64);
       
       try {
-        const result = await analyzeDamageScreenshot(base64);
+        // Timeout de 8 segundos para la IA por si la conexión es lenta
+        const analysisPromise = analyzeDamageScreenshot(base64);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("TIMEOUT")), 8000)
+        );
+
+        const result: any = await Promise.race([analysisPromise, timeoutPromise]);
+        
         if (result.playerName) setPlayerName(result.playerName);
-        if (result.damageValue) {
-          setDamageValue(result.damageValue.toString());
-        } else {
-          setError("La IA no detectó el daño automáticamente, por favor ingrésalo manualmente.");
+        if (result.damageValue) setDamageValue(result.damageValue.toString());
+        
+        if (!result.playerName && !result.damageValue) {
+          setError("La IA no encontró datos. Por favor, escríbelos tú mismo.");
+          setManualMode(true);
         }
       } catch (err: any) {
+        setManualMode(true);
         if (err.message === "API_KEY_MISSING") {
-          setIsApiKeyMissing(true);
-          setError("Lamu-AI no tiene su 'Cerebro' configurado (API_KEY). Puedes llenar los datos a mano.");
+          setError("Configuración de IA pendiente. Ingresa los datos manualmente abajo.");
+        } else if (err.message === "TIMEOUT") {
+          setError("La IA tarda demasiado. Ingresa los datos manualmente.");
         } else {
-          setError("No se pudo analizar la imagen. Ingresa los datos manualmente abajo.");
+          setError("Error de análisis. Puedes completar el reporte a mano.");
         }
       } finally {
         setIsAnalyzing(false);
@@ -56,13 +66,13 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!playerName || !damageValue) {
-      setError("Faltan datos obligatorios.");
+      setError("El nombre y el daño son obligatorios.");
       return;
     }
 
-    const val = parseInt(damageValue.replace(/[^0-9]/g, ''));
+    const val = parseInt(damageValue.toString().replace(/[^0-9]/g, ''));
     if (isNaN(val)) {
-      setError("El valor del daño debe ser un número.");
+      setError("El daño debe ser un número válido.");
       return;
     }
     
@@ -87,104 +97,98 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
-      {isApiKeyMissing && (
-        <div className="bg-amber-500/10 border border-amber-500/50 p-4 rounded-xl text-amber-200 text-xs text-center">
-          ⚠️ <strong>Aviso:</strong> La API KEY no está activa en Vercel. Puedes seguir usando el ranking ingresando los datos manualmente tras subir la foto.
-        </div>
-      )}
-
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <header className="mb-6">
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <span>⚔️</span> Reportar Daño
-          </h2>
-        </header>
+    <div className="max-w-xl mx-auto space-y-6 pb-20">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>⚔️</span> Nuevo Reporte
+        </h2>
 
         <div className="mb-8">
           <div 
             onClick={() => !isAnalyzing && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all group ${
-              previewUrl ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-700 hover:border-indigo-500'
-            } ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+              previewUrl ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-700 hover:border-slate-600'
+            }`}
           >
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" disabled={isAnalyzing} />
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             {previewUrl ? (
               <div className="relative inline-block">
-                <img src={previewUrl} alt="Preview" className="max-h-48 rounded-lg shadow-2xl border border-slate-700" />
+                <img src={previewUrl} alt="Preview" className="max-h-40 rounded-lg shadow-lg border border-slate-700" />
                 {isAnalyzing && (
-                  <div className="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center">
-                    <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <div className="absolute inset-0 bg-slate-900/70 rounded-lg flex flex-col items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-1"></div>
                     <span className="text-[10px] font-bold text-indigo-400">Analizando...</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="py-4">
-                <div className="text-4xl mb-2">📸</div>
-                <p className="text-slate-300 font-bold">Subir Captura</p>
-                <p className="text-[10px] text-slate-500">JPG, PNG o Captura de Pantalla</p>
+              <div className="py-2">
+                <div className="text-3xl mb-1">📸</div>
+                <p className="text-slate-300 font-bold text-sm">Tocar para subir captura</p>
               </div>
             )}
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setGuild('Principal')}
-              className={`py-3 rounded-xl font-bold border transition-all ${
+              className={`py-3 rounded-xl font-bold border transition-all text-xs ${
                 guild === 'Principal' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'
               }`}
             >
-              Lamu I
+              LAMU I
             </button>
             <button
               type="button"
               onClick={() => setGuild('Secundario')}
-              className={`py-3 rounded-xl font-bold border transition-all ${
+              className={`py-3 rounded-xl font-bold border transition-all text-xs ${
                 guild === 'Secundario' ? 'bg-amber-600 border-amber-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'
               }`}
             >
-              Lamu II
+              LAMU II
             </button>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Tu Nickname</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Nickname del Jugador</label>
               <input
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Nombre en el juego"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-100 focus:ring-1 focus:ring-indigo-500 outline-none"
+                placeholder="Escribe el nombre..."
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Daño Total</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Daño Realizado</label>
               <input
                 type="number"
                 value={damageValue}
                 onChange={(e) => setDamageValue(e.target.value)}
-                placeholder="Ej: 1500000"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 font-mono text-xl text-emerald-400 focus:ring-1 focus:ring-emerald-500 outline-none"
+                placeholder="Escribe el número de daño..."
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 font-mono text-xl text-emerald-400 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
               />
-              <p className="text-[9px] text-slate-500 mt-1 italic">* Si la IA falló, puedes corregir el número aquí.</p>
             </div>
           </div>
 
-          {error && <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-[10px]">⚠️ {error}</div>}
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-[10px] leading-relaxed">
+              <strong>Info:</strong> {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={isAnalyzing || !damageValue || !playerName}
-            className={`w-full font-black py-4 rounded-xl transition-all uppercase ${
-              isAnalyzing || !damageValue || !playerName ? 'bg-slate-800 text-slate-600' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+            className={`w-full font-black py-4 rounded-xl transition-all uppercase text-sm ${
+              isAnalyzing || !damageValue || !playerName ? 'bg-slate-800 text-slate-600' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg'
             }`}
           >
-            Confirmar y Enviar
+            {isAnalyzing ? 'Procesando...' : 'Confirmar Registro'}
           </button>
         </form>
       </div>
