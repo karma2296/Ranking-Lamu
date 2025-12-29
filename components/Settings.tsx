@@ -79,7 +79,7 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
       {diagError && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-6 text-red-400 shadow-xl">
           <h4 className="font-black text-xs uppercase tracking-widest mb-2">
-            Error de Conexion detectado
+            Error de conexion detectado
           </h4>
           <p className="text-sm font-medium bg-black/30 p-4 rounded-xl mb-4 leading-relaxed">
             {diagError}
@@ -89,9 +89,9 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
             <p className="font-bold mb-2">Pasos para arreglar Supabase:</p>
             <ol className="list-decimal ml-4 space-y-2">
               <li>Entra en tu proyecto de Supabase.</li>
-              <li>Ve a la seccion de Settings y luego entra en API.</li>
+              <li>Ve a la seccion de Settings y pulsa en el apartado de API.</li>
               <li>Busca la lista de Project API keys.</li>
-              <li>Copia la clave anon (es la publica). No uses service_role.</li>
+              <li>Copia la clave anon que es la publica. No uses service role.</li>
             </ol>
           </div>
         </div>
@@ -109,7 +109,7 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
         <h2 className="text-2xl font-bold text-white mb-8">Configuracion General</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="md:col-span-2 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Contraseña Administrador</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Contrasena Administrador</label>
             <input type="text" value={settings.adminPassword} onChange={(e) => setSettings({...settings, adminPassword: e.target.value})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm outline-none focus:border-indigo-500" />
           </div>
           <div className="space-y-4">
@@ -121,7 +121,7 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
             <input type="text" value={settings.supabaseUrl} onChange={(e) => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300 focus:border-indigo-500" />
             
             <div className="mt-4">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Supabase Key (anon)</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Supabase Key anon</label>
               <input type="password" value={settings.supabaseKey} onChange={(e) => setSettings({...settings, supabaseKey: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs outline-none text-slate-300 focus:border-indigo-500" />
             </div>
           </div>
@@ -134,7 +134,7 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
       <div className="bg-red-950/10 border border-red-900/30 rounded-3xl p-8">
         <h3 className="text-sm font-black text-red-500 uppercase mb-4 tracking-widest">Reset de Datos</h3>
         <div className="flex flex-col gap-4">
-          <button onClick={async () => { if(confirm('¿Seguro que quieres borrar todo?')) { setIsResetting(true); await clearAllData(); onReset?.(); setIsResetting(false); } }} disabled={isResetting} className="bg-red-600/10 hover:bg-red-600 border border-red-600/50 text-red-500 hover:text-white font-bold py-3 px-6 rounded-xl transition-all text-xs uppercase tracking-widest">
+          <button onClick={async () => { if(confirm('Seguro que quieres borrar todo?')) { setIsResetting(true); await clearAllData(); onReset?.(); setIsResetting(false); } }} disabled={isResetting} className="bg-red-600/10 hover:bg-red-600 border border-red-600/50 text-red-500 hover:text-white font-bold py-3 px-6 rounded-xl transition-all text-xs uppercase tracking-widest">
             {isResetting ? 'Borrando...' : 'Limpiar Todo'}
           </button>
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
