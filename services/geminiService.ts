@@ -4,20 +4,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
-  // Intentar obtener la API KEY de forma segura
-  let apiKey = '';
-  try {
-    apiKey = process.env.API_KEY || '';
-  } catch (e) {
-    apiKey = '';
-  }
-  
-  if (!apiKey || apiKey.length < 5) {
-    console.error("Servicio Gemini: API_KEY no configurada o inválida.");
-    throw new Error("API_KEY_MISSING");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  // Always use a named parameter and obtain the API key exclusively from process.env.API_KEY
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const mimeMatch = base64Image.match(/^data:(image\/[a-z]+);base64,/);
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
@@ -48,8 +36,10 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
       }
     });
 
-    if (!response.text) return {};
-    return JSON.parse(response.text);
+    // Directly access the text property as it returns the string output.
+    const jsonStr = response.text?.trim();
+    if (!jsonStr) return {};
+    return JSON.parse(jsonStr);
   } catch (error: any) {
     console.error("Error en Gemini API:", error);
     throw error;
