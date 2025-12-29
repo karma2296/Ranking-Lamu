@@ -30,17 +30,15 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
       setPreviewUrl(base64);
       
       try {
+        // La IA trabaja en segundo plano, pero NO bloquea el input.
         const result = await analyzeDamageScreenshot(base64);
-        if (result.playerName) setPlayerName(result.playerName);
-        if (result.damageValue) {
-          setDamageValue(result.damageValue.toString());
-        } else {
-          setError("La IA no pudo encontrar el número de daño. ¿Es la captura correcta?");
-          setDamageValue('');
-        }
+        
+        // Rellenar automáticamente solo si el usuario no ha escrito nada todavía
+        if (result.playerName && !playerName) setPlayerName(result.playerName);
+        if (result.damageValue && !damageValue) setDamageValue(result.damageValue.toString());
+        
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Error con Lamu-AI. Inténtalo de nuevo.");
+        console.warn("Análisis de IA omitido, el usuario puede seguir manualmente.");
       } finally {
         setIsAnalyzing(false);
       }
@@ -50,13 +48,16 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName || !damageValue) {
-      setError("Por favor, asegúrate de tener el nombre y el daño antes de reportar.");
+    if (!playerName || !damageValue) return;
+
+    const val = parseInt(damageValue.toString().replace(/[^0-9]/g, ''));
+    if (isNaN(val)) {
+      setError("Por favor, ingresa un número de daño válido.");
       return;
     }
-
-    const val = parseInt(damageValue);
     
+    setIsAnalyzing(false);
+
     await saveRecord({
       playerName,
       guild,
@@ -77,122 +78,121 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess }) => {
     onSuccess();
   };
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-8 pb-20">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <header className="mb-6">
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <span>⚔️</span> Subir Daño al Boss
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">Sube tu captura y la IA hará el trabajo sucio.</p>
-        </header>
+  const isSubmitDisabled = !playerName || !damageValue;
 
+  return (
+    <div className="max-w-xl mx-auto space-y-6 pb-24">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+        
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-black text-white flex items-center gap-3">
+            <span className="bg-indigo-500/20 p-2 rounded-lg text-indigo-400">⚔️</span> 
+            Subir Daño al Boss
+          </h2>
+          {isAnalyzing && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full animate-pulse">
+              <span className="text-[10px] font-bold text-indigo-400">🤖 LEYENDO IMAGEN...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Zona de Captura (Opcional) */}
         <div className="mb-8">
           <div 
-            onClick={() => !isAnalyzing && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all group ${
-              previewUrl ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5'
-            } ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => fileInputRef.current?.click()}
+            className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all hover:bg-slate-800/30 ${
+              previewUrl ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-700'
+            }`}
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              className="hidden" 
-              accept="image/*"
-              disabled={isAnalyzing}
-            />
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+            
             {previewUrl ? (
-              <div className="relative inline-block">
-                <img src={previewUrl} alt="Preview" className="max-h-64 rounded-lg shadow-2xl border border-slate-700" />
-                {isAnalyzing && (
-                  <div className="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center space-y-3">
-                    <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm font-bold text-indigo-400 animate-pulse">Lamu-AI analizando...</span>
-                  </div>
-                )}
+              <div className="relative">
+                <img src={previewUrl} alt="Preview" className="max-h-32 mx-auto rounded-xl shadow-lg border border-slate-700" />
+                <p className="text-[9px] text-slate-500 mt-2 uppercase font-bold">Clic aquí para cambiar imagen</p>
               </div>
             ) : (
-              <div className="space-y-3 py-4">
-                <div className="text-5xl group-hover:scale-110 transition-transform duration-300">📸</div>
-                <div>
-                  <p className="text-slate-300 font-bold text-lg">Subir captura del Boss</p>
-                  <p className="text-sm text-slate-500">Acepta JPG, PNG y capturas de móvil</p>
-                </div>
+              <div className="py-2">
+                <span className="text-3xl block mb-1">📸</span>
+                <p className="text-slate-300 font-bold text-sm">Sube tu captura</p>
+                <p className="text-[10px] text-slate-600 uppercase">La IA intentará ayudarte con los datos</p>
               </div>
             )}
           </div>
         </div>
 
+        {/* Formulario 100% Desbloqueado */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Tu División</label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setGuild('Principal')}
-                className={`py-4 rounded-xl font-bold border transition-all ${
-                  guild === 'Principal' 
-                    ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' 
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                Lamu I
-              </button>
-              <button
-                type="button"
-                onClick={() => setGuild('Secundario')}
-                className={`py-4 rounded-xl font-bold border transition-all ${
-                  guild === 'Secundario' 
-                    ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-500/20' 
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                Lamu II
-              </button>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setGuild('Principal')}
+              className={`py-4 rounded-xl font-black border transition-all text-[11px] uppercase ${
+                guild === 'Principal' ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-800 border-slate-700 text-slate-500'
+              }`}
+            >
+              Lamu I
+            </button>
+            <button
+              type="button"
+              onClick={() => setGuild('Secundario')}
+              className={`py-4 rounded-xl font-black border transition-all text-[11px] uppercase ${
+                guild === 'Secundario' ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-500/20' : 'bg-slate-800 border-slate-700 text-slate-500'
+              }`}
+            >
+              Lamu II
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nickname</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1 tracking-widest">
+                Nickname
+              </label>
               <input
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder="Nombre en el juego"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Daño Detectado</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1 tracking-widest">
+                Daño Infligido
+              </label>
               <input
-                type="text"
-                value={damageValue ? parseInt(damageValue).toLocaleString() : ''}
-                readOnly
-                placeholder="Esperando IA..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-4 font-mono text-xl text-emerald-400 cursor-not-allowed"
+                type="number"
+                value={damageValue}
+                onChange={(e) => setDamageValue(e.target.value)}
+                placeholder="Escribe el daño aquí..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 font-mono text-xl text-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
           </div>
 
           {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl">
-              <p className="text-red-400 text-sm font-medium">⚠️ {error}</p>
-            </div>
+            <p className="text-red-400 text-[10px] bg-red-400/5 p-3 rounded-lg border border-red-400/20 text-center font-bold">
+              {error}
+            </p>
           )}
 
           <button
             type="submit"
-            disabled={isAnalyzing || !damageValue}
-            className={`w-full font-black py-5 rounded-xl transition-all text-lg uppercase ${
-              isAnalyzing || !damageValue 
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20 shadow-2xl'
+            disabled={isSubmitDisabled}
+            className={`w-full font-black py-5 rounded-2xl transition-all uppercase tracking-widest text-sm shadow-2xl ${
+              isSubmitDisabled 
+                ? 'bg-slate-800 text-slate-600 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white hover:scale-[1.01] active:scale-95'
             }`}
           >
             Confirmar Reporte
           </button>
+          
+          <p className="text-[9px] text-center text-slate-600 uppercase font-bold tracking-widest">
+            Puedes escribir libremente. La IA es solo un asistente opcional.
+          </p>
         </form>
       </div>
     </div>
