@@ -12,18 +12,45 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<PlayerStats[]>([]);
   const [history, setHistory] = useState<DamageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   
   // Lógica de Autenticación Admin
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
 
+  // Sincronización automática vía URL
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#setup=')) {
+      try {
+        const configData = atob(hash.replace('#setup=', ''));
+        const parsedConfig = JSON.parse(configData);
+        
+        localStorage.setItem('lamu_settings', JSON.stringify(parsedConfig));
+        if (parsedConfig.discordWebhook) {
+          localStorage.setItem('lamu_discord_webhook', parsedConfig.discordWebhook);
+        }
+        
+        setSyncMessage("🛡️ ¡Gremio sincronizado con éxito! Cargando datos...");
+        window.location.hash = ''; // Limpiar URL
+        
+        setTimeout(() => {
+          setSyncMessage(null);
+          refreshData();
+        }, 3000);
+      } catch (e) {
+        console.error("Error en sincronización:", e);
+      }
+    }
+  }, []);
+
   const refreshData = async () => {
     setIsLoading(true);
     try {
       const wasReset = await checkAndPerformAutoReset();
       if (wasReset) {
-        alert("🛡️ ¡Nueva semana competitiva iniciada!");
+        console.log("Nueva semana iniciada");
       }
 
       const [newStats, newHistory] = await Promise.all([
@@ -44,7 +71,6 @@ const App: React.FC = () => {
   }, []);
 
   const handleDelete = async (id: string) => {
-    // Si no está autenticado como admin, pedir clave antes de borrar
     if (!isAdminAuthenticated) {
       alert("Solo un administrador puede borrar registros.");
       setActiveView(ViewMode.SETTINGS);
@@ -72,11 +98,20 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (syncMessage) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-center animate-bounce">
+          <span className="text-5xl mb-4">✨</span>
+          <p className="text-emerald-400 font-black uppercase tracking-widest">{syncMessage}</p>
+        </div>
+      );
+    }
+
     if (isLoading && activeView !== ViewMode.SETTINGS) {
       return (
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-medium animate-pulse">Sincronizando con el gremio...</p>
+          <p className="text-slate-500 font-medium animate-pulse">Conectando con el Gremio...</p>
         </div>
       );
     }
@@ -88,7 +123,7 @@ const App: React.FC = () => {
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
                 <h2 className="text-3xl font-bold text-white">Ranking Lamu</h2>
-                <p className="text-slate-400">Guerreros verificados</p>
+                <p className="text-slate-400">Datos compartidos en tiempo real</p>
               </div>
               <div className="flex items-center gap-4">
                 <button 
@@ -122,16 +157,19 @@ const App: React.FC = () => {
           <div className="space-y-6 animate-in fade-in duration-500">
              <header className="mb-8">
                 <h2 className="text-3xl font-bold text-white">Últimos Ataques</h2>
-                <p className="text-slate-400">Historial completo</p>
+                <p className="text-slate-400">Historial del servidor</p>
               </header>
               <div className="grid grid-cols-1 gap-4 pb-24">
-                {history.map((record) => (
+                {history.length > 0 ? history.map((record) => (
                   <div key={record.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between hover:border-slate-700 transition-all">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center text-xl border border-slate-700">⚔️</div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-slate-200">{record.playerName}</h4>
+                          <span className={`text-[8px] px-1 rounded font-black ${record.guild === 'Principal' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {record.guild === 'Principal' ? 'L I' : 'L II'}
+                          </span>
                         </div>
                         <p className="text-[10px] text-slate-500 uppercase">{new Date(record.timestamp).toLocaleString()}</p>
                       </div>
@@ -146,7 +184,9 @@ const App: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-20 text-slate-600 uppercase text-xs font-bold tracking-widest italic opacity-50">No hay registros globales aún</div>
+                )}
               </div>
           </div>
         );
@@ -158,8 +198,8 @@ const App: React.FC = () => {
                 🔐
               </div>
               <div>
-                <h2 className="text-xl font-black text-white uppercase tracking-widest">Acceso Restringido</h2>
-                <p className="text-slate-500 text-xs mt-2">Ingresa la clave de administrador para continuar.</p>
+                <h2 className="text-xl font-black text-white uppercase tracking-widest">Acceso Administrativo</h2>
+                <p className="text-slate-500 text-xs mt-2">Ingresa la clave para gestionar el gremio.</p>
               </div>
               <form onSubmit={handleAdminAuth} className="space-y-4">
                 <input
@@ -171,9 +211,8 @@ const App: React.FC = () => {
                   className={`w-full bg-slate-950 border ${authError ? 'border-red-500 animate-shake' : 'border-slate-800'} rounded-2xl px-6 py-4 text-center font-black tracking-[0.5em] text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all`}
                 />
                 <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase text-xs tracking-widest">
-                  Desbloquear Ajustes
+                  Entrar al Panel
                 </button>
-                {authError && <p className="text-red-500 text-[10px] font-black uppercase">Clave incorrecta</p>}
               </form>
             </div>
           );
@@ -187,8 +226,6 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-950">
       <Navigation activeView={activeView} onViewChange={(view) => {
-        // Al cambiar de vista, si no es settings, reseteamos el login (opcional)
-        // setIsAdminAuthenticated(false); // Descomenta si quieres que pida clave CADA VEZ que vuelvas
         setActiveView(view);
       }} />
       <main className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto">
