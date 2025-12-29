@@ -79,21 +79,11 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
       {diagError && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-6 text-red-400 shadow-xl">
           <h4 className="font-black text-xs uppercase tracking-widest mb-2">
-            Error de conexion detectado
+            Estado de la Conexion
           </h4>
           <p className="text-sm font-medium bg-black/30 p-4 rounded-xl mb-4 leading-relaxed">
             {diagError}
           </p>
-          
-          <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs">
-            <p className="font-bold mb-2">Pasos para arreglar Supabase:</p>
-            <ol className="list-decimal ml-4 space-y-2">
-              <li>Entra en tu proyecto de Supabase.</li>
-              <li>Ve a la seccion de Settings y pulsa en el apartado de API.</li>
-              <li>Busca la lista de Project API keys.</li>
-              <li>Copia la clave anon que es la publica. No uses service role.</li>
-            </ol>
-          </div>
         </div>
       )}
 
