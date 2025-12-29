@@ -12,14 +12,23 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
     discordWebhook: '',
     supabaseUrl: '',
     supabaseKey: '',
-    guildName: 'Lamu'
+    guildName: 'Lamu',
+    adminPassword: ''
   });
   const [saved, setSaved] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('lamu_settings');
-    if (savedSettings) setSettings(JSON.parse(savedSettings));
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings);
+      setSettings({
+        ...parsed,
+        adminPassword: parsed.adminPassword || 'admin123'
+      });
+    } else {
+      setSettings(prev => ({ ...prev, adminPassword: 'admin123' }));
+    }
   }, []);
 
   const handleSave = () => {
@@ -47,17 +56,36 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
             <span className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">⚙️</span>
             Centro de Control Lamu
           </h2>
-          <p className="text-slate-400 mt-2">Configura cómo interactúa tu web con Discord y la nube.</p>
+          <p className="text-slate-400 mt-2">Configuración reservada para líderes de gremio.</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Seguridad */}
+          <div className="space-y-4 md:col-span-2 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
+            <h3 className="text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+              Seguridad del Panel
+            </h3>
+            <div className="max-w-sm">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Contraseña de Administrador</label>
+              <input
+                type="text"
+                value={settings.adminPassword}
+                onChange={(e) => setSettings({...settings, adminPassword: e.target.value})}
+                placeholder="Nueva contraseña..."
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+              />
+              <p className="text-[9px] text-slate-600 mt-2 italic">Esta clave protege esta pestaña de otros usuarios.</p>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <h3 className="text-sm font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
               Discord Bot
             </h3>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Webhook URL de Canal</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Webhook URL</label>
               <input
                 type="password"
                 value={settings.discordWebhook}
@@ -66,13 +94,12 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-indigo-300 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
               />
             </div>
-            <p className="text-[10px] text-slate-500 italic">Cada registro se enviará a este canal automáticamente.</p>
           </div>
 
           <div className="space-y-4">
             <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-              Cloud Database (Supabase)
+              Cloud Database
             </h3>
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Supabase Project URL</label>
@@ -104,25 +131,24 @@ const Settings: React.FC<SettingsProps> = ({ onReset }) => {
               saved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'
             }`}
           >
-            {saved ? '✅ Configuración Aplicada' : 'Guardar Configuración'}
+            {saved ? '✅ Configuración Aplicada' : 'Guardar Cambios Administrativos'}
           </button>
         </div>
       </div>
 
-      {/* Zona de Peligro / Administración */}
       <div className="bg-red-950/20 border border-red-900/50 rounded-2xl p-8 shadow-2xl">
         <h3 className="text-sm font-black text-red-500 uppercase tracking-widest flex items-center gap-2 mb-4">
           <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-          Zona de Administración
+          Zona de Peligro
         </h3>
-        <p className="text-xs text-red-200/60 mb-6">Estas acciones son permanentes. Úsalas solo para el mantenimiento del gremio.</p>
+        <p className="text-xs text-red-200/60 mb-6">Reinicia todo el servidor. Solo usar en caso de nueva temporada oficial.</p>
         
         <button
           onClick={handleManualReset}
           disabled={isResetting}
           className="bg-red-600/10 hover:bg-red-600 border border-red-600/50 text-red-500 hover:text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-2 text-sm"
         >
-          {isResetting ? 'Borrando...' : '🗑️ Reiniciar Ranking y Limpiar Todo'}
+          {isResetting ? 'Borrando...' : '🗑️ Reiniciar Ranking Global'}
         </button>
       </div>
     </div>
