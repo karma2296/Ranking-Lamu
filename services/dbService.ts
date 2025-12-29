@@ -7,14 +7,35 @@ const RESET_KEY = 'lamu_last_reset_timestamp';
 const getSupabaseConfig = () => {
   const settingsStr = localStorage.getItem('lamu_settings');
   if (!settingsStr) return null;
-  const settings = JSON.parse(settingsStr);
-  if (settings.supabaseUrl && settings.supabaseKey) {
-    return {
-      url: settings.supabaseUrl.replace(/\/$/, ''),
-      key: settings.supabaseKey
-    };
+  try {
+    const settings = JSON.parse(settingsStr);
+    if (settings.supabaseUrl && settings.supabaseKey) {
+      return {
+        url: settings.supabaseUrl.replace(/\/$/, ''),
+        key: settings.supabaseKey
+      };
+    }
+  } catch (e) {
+    return null;
   }
   return null;
+};
+
+// Función para verificar si la conexión a la nube es exitosa
+export const isCloudConnected = async (): Promise<boolean> => {
+  const config = getSupabaseConfig();
+  if (!config) return false;
+  try {
+    const response = await fetch(`${config.url}/rest/v1/damage_records?select=id&limit=1`, {
+      headers: {
+        'apikey': config.key,
+        'Authorization': `Bearer ${config.key}`
+      }
+    });
+    return response.ok;
+  } catch (e) {
+    return false;
+  }
 };
 
 export const getRecords = async (): Promise<DamageRecord[]> => {
@@ -22,14 +43,22 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
   
   if (config) {
     try {
-      const response = await fetch(`${config.url}/rest/v1/damage_records?select=*`, {
+      const response = await fetch(`${config.url}/rest/v1/damage_records?select=*&order=timestamp.desc`, {
         headers: {
           'apikey': config.key,
           'Authorization': `Bearer ${config.key}`
         }
       });
-      if (!response.ok) throw new Error('Error fetching from Supabase');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error de Supabase:", errorData);
+        throw new Error('Supabase Error');
+      }
+      
       const data = await response.json();
+      if (!Array.isArray(data)) return [];
+
       return data.map((r: any) => ({
         id: r.id,
         playerName: r.player_name,
@@ -39,7 +68,7 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
         screenshotUrl: r.screenshot_url
       }));
     } catch (e) {
-      console.error("Fallo Supabase, usando local:", e);
+      console.error("Fallo conexión a la nube, usando almacenamiento local temporal:", e);
     }
   }
 
@@ -50,6 +79,7 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
 export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>): Promise<DamageRecord> => {
   const timestamp = Date.now();
   const config = getSupabaseConfig();
+  const id = crypto.randomUUID();
 
   if (config) {
     try {
@@ -62,6 +92,7 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           'Prefer': 'return=representation'
         },
         body: JSON.stringify({
+          id: id, // Enviamos el ID generado por nosotros para evitar problemas de RLS
           player_name: record.playerName,
           guild: record.guild,
           damage_value: record.damageValue,
@@ -69,20 +100,24 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           screenshot_url: record.screenshotUrl
         })
       });
+
       if (response.ok) {
         const result = await response.json();
         return result[0];
+      } else {
+        const errorText = await response.text();
+        console.error("Supabase rechazó el guardado:", errorText);
       }
     } catch (e) {
-      console.error("Error guardando en Supabase:", e);
+      console.error("Error crítico guardando en la nube:", e);
     }
   }
 
-  // Fallback a LocalStorage si no hay Supabase o falla
+  // Fallback a LocalStorage
   const records = await getRecords();
   const newRecord: DamageRecord = {
     ...record,
-    id: crypto.randomUUID(),
+    id,
     timestamp,
   };
   
@@ -114,8 +149,6 @@ export const clearAllData = async (): Promise<void> => {
   const config = getSupabaseConfig();
   if (config) {
     try {
-      // Nota: Para borrar todo en Supabase vía REST sin filtros hay que tener cuidado.
-      // Aquí borramos todos los registros.
       await fetch(`${config.url}/rest/v1/damage_records?id=neq.0`, {
         method: 'DELETE',
         headers: {
