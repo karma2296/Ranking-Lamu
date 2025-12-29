@@ -89,10 +89,6 @@ CREATE POLICY "Public Access" ON damage_records FOR ALL USING (true) WITH CHECK 
           <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs">
             <p className="font-bold mb-2">Instrucciones de reparacion:</p>
             <ol className="list-decimal ml-4 space-y-2">
-              <li>Ve a tu proyecto en <b>Supabase</b>.</li>
-              <li>Haz clic en el icono de <b>Settings</b> (engranaje) &rarr; <b>API</b>.</li>
-              <li>Busca <b>Project API keys</b>.</li>
-              <li>Copia la que dice <b>"anon"</b> (public). <b>NO</b> uses la de "service_role".</li>
             </ol>
           </div>
         </div>
