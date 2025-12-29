@@ -102,14 +102,24 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           id: id,
           player_name: record.playerName,
           guild: record.guild,
-          damage_value: record.damage_value,
+          // Fixed: Access record.damageValue correctly instead of undefined record.damage_value
+          damage_value: record.damageValue,
           timestamp: timestamp,
           screenshot_url: record.screenshotUrl
         })
       });
       if (response.ok) {
         const result = await response.json();
-        return result[0];
+        const r = result[0];
+        // Ensure we map snake_case response back to camelCase frontend interface
+        return {
+          id: r.id,
+          playerName: r.player_name,
+          guild: r.guild,
+          damageValue: r.damage_value,
+          timestamp: r.timestamp,
+          screenshotUrl: r.screenshot_url
+        };
       }
     } catch (e) { console.error(e); }
   }
@@ -199,3 +209,4 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
     .sort((a, b) => b.maxDamage - a.maxDamage)
     .map((stat, index) => ({ ...stat, rank: index + 1 }));
 };
+
