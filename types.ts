@@ -22,6 +22,7 @@ export interface AppSettings {
   supabaseUrl: string;
   supabaseKey: string;
   guildName: string;
+  adminPassword?: string;
 }
 
 export enum ViewMode {
@@ -30,3 +31,4 @@ export enum ViewMode {
   HISTORY = 'HISTORY',
   SETTINGS = 'SETTINGS'
 }
+
