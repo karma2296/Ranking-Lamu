@@ -1,4 +1,10 @@
 
+export interface DiscordUser {
+  id: string;
+  username: string;
+  avatar?: string;
+}
+
 export interface DamageRecord {
   id: string;
   playerName: string;
@@ -6,6 +12,7 @@ export interface DamageRecord {
   damageValue: number;
   timestamp: number;
   screenshotUrl?: string;
+  discordUser?: DiscordUser;
 }
 
 export interface PlayerStats {
@@ -15,6 +22,7 @@ export interface PlayerStats {
   totalEntries: number;
   lastUpdated: number;
   rank?: number;
+  discordUser?: DiscordUser;
 }
 
 export interface AppSettings {
@@ -23,6 +31,7 @@ export interface AppSettings {
   supabaseKey: string;
   guildName: string;
   adminPassword?: string;
+  discordClientId?: string;
 }
 
 export enum ViewMode {
