@@ -61,6 +61,29 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
   const id = crypto.randomUUID();
   
   if (config?.supabaseUrl && config?.supabaseKey) {
+    // Intentamos primero el guardado COMPLETO (con datos de Discord)
+    const fullPayload = {
+      id,
+      player_name: record.playerName,
+      guild: record.guild,
+      damage_value: record.damageValue,
+      timestamp,
+      screenshot_url: record.screenshotUrl,
+      discord_id: record.discordUser?.id,
+      discord_username: record.discordUser?.username,
+      discord_avatar: record.discordUser?.avatar
+    };
+
+    // Payload SEGURO (solo columnas básicas que sabemos que existen)
+    const safePayload = {
+      id,
+      player_name: record.playerName,
+      guild: record.guild,
+      damage_value: record.damageValue,
+      timestamp,
+      screenshot_url: record.screenshotUrl
+    };
+
     try {
       const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
         method: 'POST',
@@ -68,29 +91,33 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           'apikey': config.supabaseKey,
           'Authorization': `Bearer ${config.supabaseKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({
-          id,
-          player_name: record.playerName,
-          guild: record.guild,
-          damage_value: record.damageValue,
-          timestamp,
-          screenshot_url: record.screenshotUrl,
-          discord_id: record.discordUser?.id,
-          discord_username: record.discordUser?.username,
-          discord_avatar: record.discordUser?.avatar
-        })
+        body: JSON.stringify(fullPayload)
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al subir a la nube");
+        // Si el error dice que falta una columna de discord, reintentamos con el payload seguro
+        if (errorData.message?.includes('column') || errorData.code === '42703') {
+          console.warn("Detectadas columnas faltantes en Supabase, reintentando guardado seguro...");
+          const retryRes = await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
+            method: 'POST',
+            headers: {
+              'apikey': config.supabaseKey,
+              'Authorization': `Bearer ${config.supabaseKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(safePayload)
+          });
+          if (!retryRes.ok) throw new Error("Error incluso en guardado seguro");
+        } else {
+          throw new Error(errorData.message || "Error al subir a la nube");
+        }
       }
     } catch (e: any) { 
-      console.error("Error Supabase:", e); 
-      // Si la nube falla, intentamos guardar local pero avisamos
-      throw new Error("No se pudo conectar con la base de datos: " + e.message);
+      console.error("Error Crítico Supabase:", e); 
+      throw new Error("Base de Datos: " + e.message);
     }
   }
   

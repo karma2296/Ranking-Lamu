@@ -16,31 +16,29 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
   const [guild, setGuild] = useState<'Principal' | 'Secundario'>('Principal');
   const [damageValue, setDamageValue] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Función para comprimir la imagen antes de guardarla/enviarla
   const compressImage = (base64: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
+        const MAX_WIDTH = 1000; // Un poco más pequeña para asegurar estabilidad
         let width = img.width;
         let height = img.height;
-
         if (width > MAX_WIDTH) {
           height *= MAX_WIDTH / width;
           width = MAX_WIDTH;
         }
-
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7)); // Comprimido al 70%
+        resolve(canvas.toDataURL('image/jpeg', 0.6)); // Bajamos calidad para máxima compatibilidad
       };
     });
   };
@@ -50,7 +48,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage("Procesando imagen...");
+    setStatusMessage("Preparando captura...");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -59,16 +57,16 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
       setPreviewUrl(compressed);
       
       try {
-        setStatusMessage("Analizando con Gemini Pro...");
+        setStatusMessage("IA leyendo nombre y daño...");
         const result = await analyzeDamageScreenshot(compressed);
         
         if (result.playerName) setPlayerName(result.playerName);
         if (result.damageValue) setDamageValue(result.damageValue.toString());
         
-        setStatusMessage("✓ Datos extraídos");
+        setStatusMessage("✓ Lectura completada");
         setTimeout(() => setStatusMessage(null), 3000);
       } catch (err) {
-        setStatusMessage("⚠ No se pudo leer. Por favor, rellena los campos manual.");
+        setStatusMessage("⚠ No pude leer la imagen. Escribe los datos manualmente.");
       } finally { 
         setIsAnalyzing(false); 
       }
@@ -83,7 +81,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     const val = parseInt(damageValue.replace(/[^0-9]/g, ''));
     if (isNaN(val)) return alert("El daño debe ser un número");
 
-    setStatusMessage("Guardando registro...");
+    setIsSaving(true);
+    setStatusMessage("Enviando reporte...");
     try {
       const record = { 
         playerName, 
@@ -103,15 +102,17 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     } catch (e: any) {
       alert("Error al guardar: " + (e.message || "Error desconocido"));
       setStatusMessage(null);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   if (!currentUser) {
     return (
       <div className="max-w-xl mx-auto py-20 text-center bg-slate-900 border border-slate-800 rounded-[2.5rem] p-12">
-        <h2 className="text-2xl font-black text-white mb-4 uppercase italic tracking-tighter">Acceso de Guerrero</h2>
-        <p className="text-slate-400 mb-10">Debes conectar tu cuenta de Discord para reportar daños.</p>
-        <button onClick={onLoginRequest} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs transition-all shadow-xl shadow-indigo-500/20">🛰️ Conectar con Discord</button>
+        <h2 className="text-2xl font-black text-white mb-4 uppercase italic">Identificación Requerida</h2>
+        <p className="text-slate-400 mb-10">Para evitar spam, debes conectar Discord para subir tus capturas.</p>
+        <button onClick={onLoginRequest} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs transition-all shadow-xl">Conectar con Discord</button>
       </div>
     );
   }
@@ -120,10 +121,12 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     <div className="max-w-xl mx-auto space-y-6 pb-24 animate-in fade-in duration-500">
       <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
         
-        {isAnalyzing && (
+        {(isAnalyzing || isSaving) && (
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40 flex flex-col items-center justify-center space-y-6">
             <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
-            <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">Analizando Interfaz...</p>
+            <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">
+              {isAnalyzing ? 'Leyendo Pantalla...' : 'Guardando Daño...'}
+            </p>
           </div>
         )}
 
@@ -138,21 +141,21 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             <div className="relative">
               <img src={previewUrl} className="max-h-64 mx-auto rounded-2xl shadow-xl" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                <span className="text-white font-black text-xs uppercase bg-slate-900/80 px-4 py-2 rounded-full">Cambiar Captura</span>
+                <span className="text-white font-black text-[10px] uppercase bg-slate-900/80 px-4 py-2 rounded-full">Cambiar Captura</span>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="text-5xl">📸</div>
               <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Sube tu captura</p>
-              <p className="text-slate-600 text-[9px] uppercase font-bold">Pantalla de Daño Personal</p>
+              <p className="text-slate-600 text-[8px] uppercase font-bold">Pantalla de Daño Personal Total</p>
             </div>
           )}
         </div>
 
         {statusMessage && (
-          <div className="mb-8 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-center">
-            <p className="text-indigo-300 font-bold text-[10px] uppercase tracking-wider">{statusMessage}</p>
+          <div className="mb-8 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-center">
+            <p className="text-indigo-300 font-bold text-[9px] uppercase tracking-wider">{statusMessage}</p>
           </div>
         )}
 
@@ -161,47 +164,47 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             <button 
               type="button" 
               onClick={() => setGuild('Principal')} 
-              className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Principal' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
+              className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Principal' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
             >
               Lamu Principal
             </button>
             <button 
               type="button" 
               onClick={() => setGuild('Secundario')} 
-              className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Secundario' ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
+              className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Secundario' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
             >
               Lamu Secundario
             </button>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Nombre del Guerrero</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Guerrero</label>
             <input 
               type="text" 
               value={playerName} 
               onChange={(e) => setPlayerName(e.target.value)} 
-              placeholder="Detectando..." 
+              placeholder="Nombre en el juego" 
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black outline-none focus:border-indigo-500 transition-colors" 
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Daño Personal Total</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Daño Personal</label>
             <input 
               type="text" 
               value={damageValue} 
               onChange={(e) => setDamageValue(e.target.value)} 
-              placeholder="000.000.000" 
+              placeholder="Ej: 349632248" 
               className="w-full bg-slate-950 border border-slate-800 rounded-3xl px-6 py-6 font-mono text-3xl font-black text-cyan-400 outline-none focus:border-cyan-500 transition-colors placeholder:text-slate-800 text-center" 
             />
           </div>
 
           <button 
             type="submit" 
-            disabled={isAnalyzing} 
+            disabled={isAnalyzing || isSaving} 
             className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-black py-6 rounded-2xl uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 disabled:opacity-50"
           >
-            {isAnalyzing ? 'ESPERANDO...' : 'CONFIRMAR REPORTE'}
+            {isSaving ? 'GUARDANDO...' : 'CONFIRMAR REPORTE'}
           </button>
         </form>
       </div>

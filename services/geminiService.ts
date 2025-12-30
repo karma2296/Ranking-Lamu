@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Usamos el modelo Pro para máxima precisión en la lectura de fuentes estilizadas
+// Usamos el modelo Pro para máxima visión en fuentes complejas
 const MODEL_NAME = 'gemini-3-pro-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
@@ -9,16 +9,18 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
   
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
-  const prompt = `Analiza detalladamente esta captura de pantalla de "Skullgirls Mobile".
+  // Prompt con instrucciones espaciales precisas para la UI de Skullgirls
+  const prompt = `Analiza detalladamente esta captura de pantalla del videojuego Skullgirls Mobile.
   
-  TU OBJETIVO:
-  1. EXTRAER EL NOMBRE DEL JUGADOR: Está en la esquina SUPERIOR IZQUIERDA, dentro de una placa dorada con diseño Art Déco. Ignora el nivel (ej: NV 78).
-  2. EXTRAER EL DAÑO PERSONAL: Está en el CENTRO de la pantalla, justo debajo de la etiqueta "TOTAL PERSONAL DAMAGE" y a la IZQUIERDA del contador de tiempo "00:00" (TIME). Es un número blanco o dorado muy grande con puntos (ej: 349.632.248).
+  INSTRUCCIONES DE LOCALIZACIÓN:
+  1. BUSCA EL NOMBRE: Mira el cuadrante SUPERIOR IZQUIERDO. Hay una placa dorada con bordes angulares. Dentro está el nombre del jugador (ej: "AshaZeba"). Ignora el nivel que dice "NV XX".
+  2. BUSCA EL DAÑO: Mira exactamente en el CENTRO de la imagen. Busca el texto "TOTAL PERSONAL DAMAGE" en letras blancas delgadas. Inmediatamente debajo, verás un número muy GRANDE y DESTACADO (ej: "349.632.248"). Ese es el daño que necesito.
   
-  REGLAS DE FORMATO:
-  - Devuelve el daño como un número entero puro (sin puntos ni comas).
-  - El nombre puede contener caracteres especiales o puntos.
-  - Responde exclusivamente en JSON.`;
+  REGLAS DE EXTRACCIÓN:
+  - Para el nombre: Extrae el texto tal cual aparece, respetando mayúsculas.
+  - Para el daño: Devuelve solo los números, elimina los puntos (ej: "349632248").
+  
+  Responde únicamente en formato JSON.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -30,7 +32,7 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
         ]
       },
       config: {
-        systemInstruction: "Eres un experto en lectura de interfaces de usuario (UI) de Skullgirls Mobile. Tu precisión leyendo nombres de jugadores y valores de daño es absoluta.",
+        systemInstruction: "Eres un sistema de visión artificial experto en interfaces de juegos de lucha. Tu precisión para leer números en fuentes estilizadas es del 100%.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -40,15 +42,22 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
           },
           required: ["playerName", "damageValue"]
         },
-        temperature: 0.1,
+        temperature: 0.1, // Baja temperatura para mayor consistencia
       }
     });
 
     const text = response.text;
-    if (!text) throw new Error("No se obtuvo respuesta de la IA");
-    return JSON.parse(text);
+    if (!text) throw new Error("IA no respondió");
+    
+    const result = JSON.parse(text);
+    // Validación extra: si el daño es 0 o ridículamente bajo, algo falló
+    if (result.damageValue < 1000) {
+        console.warn("Posible error de lectura, daño muy bajo detectado");
+    }
+    
+    return result;
   } catch (error: any) {
-    console.error("Error OCR:", error);
+    console.error("Error en Gemini OCR:", error);
     throw error;
   }
 };
