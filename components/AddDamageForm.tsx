@@ -35,7 +35,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage("Procesando imagen...");
+    setStatusMessage("Leyendo captura de pantalla...");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -43,22 +43,17 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
       setPreviewUrl(base64);
       
       try {
-        setStatusMessage("Buscando datos en la interfaz...");
+        setStatusMessage("La IA está analizando los datos...");
         const result = await analyzeDamageScreenshot(base64);
         
         if (result.playerName) setPlayerName(result.playerName);
         if (result.damageValue) setDamageValue(result.damageValue.toString());
         
-        if (result.playerName || result.damageValue) {
-          setStatusMessage("¡Análisis exitoso!");
-        } else {
-          setStatusMessage("No pude leer los datos. Intenta con una imagen más clara.");
-        }
-        
+        setStatusMessage("¡Datos detectados correctamente!");
         setTimeout(() => setStatusMessage(null), 3000);
       } catch (err) {
         console.error("Error de análisis:", err);
-        setStatusMessage("Error en el escaneo. Por favor, completa los campos manualmente.");
+        setStatusMessage("No pude leer la imagen. Por favor, escribe los datos manualmente.");
       } finally { 
         setIsAnalyzing(false); 
       }
@@ -73,7 +68,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     const val = parseInt(damageValue.toString().replace(/[^0-9]/g, ''));
     if (isNaN(val)) return alert("El daño debe ser un número válido");
 
-    setStatusMessage("Registrando daño...");
+    setStatusMessage("Registrando daño en el sistema...");
     try {
       await saveRecord({ 
         playerName, 
@@ -109,7 +104,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
             <div className="text-center">
               <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">Escaneando con IA Pro</p>
-              <p className="text-slate-500 text-[10px] mt-2 font-bold uppercase">Detectando Guerrero y Daño...</p>
+              <p className="text-slate-500 text-[10px] mt-2 font-bold uppercase">Buscando nombre y daño...</p>
             </div>
           </div>
         )}
@@ -132,7 +127,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             <div className="space-y-3">
               <div className="text-5xl">📸</div>
               <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Sube tu captura de Daño</p>
-              <p className="text-slate-600 text-[9px] uppercase font-bold">Usa la pantalla de 'TOTAL PERSONAL DAMAGE'</p>
+              <p className="text-slate-600 text-[9px] uppercase font-bold">Usa la pantalla de resultados de Brecha</p>
             </div>
           )}
         </div>
@@ -167,7 +162,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
               type="text" 
               value={playerName} 
               onChange={(e) => setPlayerName(e.target.value)} 
-              placeholder="Detectando..." 
+              placeholder="Escribe tu nick..." 
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black outline-none focus:border-indigo-500 transition-colors" 
             />
           </div>
@@ -188,7 +183,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             disabled={isAnalyzing} 
             className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-black py-6 rounded-2xl uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 disabled:opacity-50"
           >
-            {isAnalyzing ? 'PROCESANDO...' : 'CONFIRMAR Y SUBIR'}
+            {isAnalyzing ? 'PROCESANDO...' : 'CONFIRMAR REPORTE'}
           </button>
         </form>
       </div>

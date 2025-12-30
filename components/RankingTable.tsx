@@ -164,7 +164,9 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-100 group-hover:text-white transition-colors tracking-tight">{player.playerName}</h4>
-                      <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.1em]">{player.guild === 'Principal' ? 'Lamu Principal' : 'Lamu Secundario'}</p>
+                      <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.1em]">
+                        {player.guild === 'Principal' ? 'Lamu Principal' : 'Lamu Secundario'}
+                      </p>
                     </div>
                   </div>
                 </td>

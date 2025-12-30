@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Usamos Pro para máxima capacidad de visión en fuentes complejas
+// Usamos el modelo Pro para máxima precisión en la lectura de fuentes estilizadas
 const MODEL_NAME = 'gemini-3-pro-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
@@ -11,19 +11,17 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
-  // Prompt optimizado para la pantalla de "DAÑO" de Skullgirls Mobile
-  const prompt = `Analiza esta captura de pantalla de resultados de batalla del juego "Skullgirls Mobile".
+  // Prompt simplificado y directo enfocado en la posición de los elementos
+  const prompt = `Analiza esta captura de pantalla de Skullgirls Mobile.
   
-  PASOS DE ANÁLISIS:
-  1. Localiza la placa dorada en la esquina SUPERIOR IZQUIERDA. Dentro hay un nombre de usuario y un nivel (ej. NV 78). Extrae el NOMBRE DE USUARIO (ignora "NV" y el número).
-  2. Localiza el texto "TOTAL PERSONAL DAMAGE" en el centro de la pantalla. Justo debajo hay un número grande con puntos decimales. Extrae ese NÚMERO completo.
+  EXTRACCIÓN REQUERIDA:
+  1. NOMBRE DEL JUGADOR: Ubicado en la esquina SUPERIOR IZQUIERDA (ej: "AshaZeba", "QUE HACKER"). Ignora el nivel "NV XX".
+  2. DAÑO TOTAL PERSONAL: Ubicado en el CENTRO de la pantalla, justo a la IZQUIERDA del contador de "TIME" y debajo de la etiqueta "TOTAL PERSONAL DAMAGE". Es un número largo con puntos (ej: 349.632.248).
   
-  REGLAS CRÍTICAS:
-  - El nombre del jugador suele estar en mayúsculas (ej: QUE HACKER).
-  - El daño es un número entero largo (ej: 558672041). Elimina puntos o comas al devolverlo.
-  - No confundas "TOTAL PERSONAL DAMAGE" con "TOTAL DAMAGE" (que aparece más abajo con un icono de calavera). Queremos el de ARRIBA, el PERSONAL.
-  
-  Responde estrictamente en formato JSON.`;
+  REGLAS:
+  - Extrae el daño como un número entero puro (sin puntos ni comas).
+  - Si el nombre tiene símbolos, inclúyelos.
+  - Responde ÚNICAMENTE en formato JSON.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -35,32 +33,32 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
         ]
       },
       config: {
-        systemInstruction: "Eres un sistema de OCR especializado en videojuegos. Tu única misión es extraer el 'playerName' y el 'damageValue' de capturas de Skullgirls Mobile. Eres extremadamente preciso con los números y nombres estilizados.",
+        systemInstruction: "Eres un sistema OCR de alta precisión para Skullgirls Mobile. Te enfocas en la esquina superior izquierda para el nombre y el centro para el daño personal total.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             playerName: { 
               type: Type.STRING,
-              description: "El nombre del jugador detectado en la esquina superior izquierda."
+              description: "Nombre exacto del jugador en la esquina superior izquierda."
             },
             damageValue: { 
               type: Type.INTEGER, 
-              description: "El valor numérico del daño personal (sin puntos ni comas)."
+              description: "Valor numérico del Total Personal Damage en el centro."
             }
           },
           required: ["playerName", "damageValue"]
         },
-        temperature: 0,
+        temperature: 0, // Cero para evitar alucinaciones
       }
     });
 
-    const jsonStr = response.text?.trim();
-    if (!jsonStr) throw new Error("Respuesta vacía de la IA");
+    const text = response.text;
+    if (!text) throw new Error("La IA no devolvió texto.");
     
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (error: any) {
-    console.error("Error detallado en Gemini Pro:", error);
+    console.error("Error en el análisis de Gemini:", error);
     throw error;
   }
 };
