@@ -1,12 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PlayerStats } from '../types';
 
 interface RankingTableProps {
   stats: PlayerStats[];
 }
 
-// Medallas SVG inspiradas en el estilo de Skullgirls (Art Déco / Fighting Game)
 const MedalSVG = ({ type, size = "100%" }: { type: 'diamond' | 'gold' | 'silver', size?: string }) => {
   if (type === 'diamond') {
     return (
@@ -62,7 +61,44 @@ const MedalSVG = ({ type, size = "100%" }: { type: 'diamond' | 'gold' | 'silver'
 };
 
 const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
+  const [isCopied, setIsCopied] = useState(false);
   const top3 = stats.slice(0, 3);
+
+  const exportToDiscord = () => {
+    if (stats.length === 0) return;
+
+    let message = `🛡️ **ESTADO DE LA BATALLA - GREMIO LAMU** 🛡️\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    
+    // Top 3 con menciones especiales
+    if (stats[0]) message += `💎 **MVP DEL CICLO**\n🥇 **${stats[0].playerName}** » \`${stats[0].maxDamage.toLocaleString()}\`\n\n`;
+    if (stats[1]) message += `🥈 **${stats[1].playerName}** » \`${stats[1].maxDamage.toLocaleString()}\`\n`;
+    if (stats[2]) message += `🥉 **${stats[2].playerName}** » \`${stats[2].maxDamage.toLocaleString()}\`\n\n`;
+
+    // Resto del ranking en bloque de código para alineación perfecta
+    if (stats.length > 3) {
+      message += `📋 **RANKING DE GUERREROS**\n`;
+      message += `\`\`\`md\n`;
+      message += `Pos | Guerrero             | Puntuación\n`;
+      message += `----|----------------------|------------\n`;
+      
+      stats.slice(3, 15).forEach((player, i) => {
+        const pos = (i + 4).toString().padStart(2, '0');
+        const name = player.playerName.padEnd(20, ' ');
+        const dmg = player.maxDamage.toLocaleString().padStart(10, ' ');
+        message += `${pos}  | ${name} | ${dmg}\n`;
+      });
+      
+      message += `\`\`\`\n`;
+    }
+
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📅 *Actualizado: ${new Date().toLocaleDateString()}*`;
+
+    navigator.clipboard.writeText(message);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 3000);
+  };
 
   const renderAvatar = (url?: string, name?: string, size: string = "w-full h-full") => {
     if (url) return <img src={url} className={`${size} object-cover`} alt="" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/100?text=?')} />;
@@ -75,6 +111,21 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      
+      {/* Botón de Exportar */}
+      <div className="flex justify-end max-w-4xl mx-auto -mb-8">
+        <button 
+          onClick={exportToDiscord}
+          className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-xl ${
+            isCopied 
+            ? 'bg-emerald-500 text-white' 
+            : 'bg-[#5865F2] hover:bg-[#4752C4] text-white'
+          }`}
+        >
+          {isCopied ? '✅ COPIADO PARA DISCORD' : '🔗 EXPORTAR RANKING DISCORD'}
+        </button>
+      </div>
+
       {top3.length > 0 && (
         <div className="grid grid-cols-3 gap-2 md:gap-8 items-end max-w-4xl mx-auto pt-24 pb-12">
           
