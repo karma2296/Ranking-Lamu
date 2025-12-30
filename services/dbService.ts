@@ -52,13 +52,19 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
       }
     } catch (e) { console.error(e); }
   }
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  // Si no hay nube, cargamos lo local (que ahora será ligero)
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
 };
 
 export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>): Promise<DamageRecord> => {
   const timestamp = Date.now();
   const config = getSupabaseConfig();
   const id = crypto.randomUUID();
+  const newRecord = { ...record, id, timestamp };
   
   if (config?.supabaseUrl && config?.supabaseKey) {
     const fullPayload = {
@@ -67,19 +73,10 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
       guild: record.guild,
       damage_value: record.damageValue,
       timestamp,
-      screenshot_url: record.screenshotUrl,
+      screenshot_url: record.screenshotUrl, // En la nube SÍ guardamos la imagen
       discord_id: record.discordUser?.id,
       discord_username: record.discordUser?.username,
       discord_avatar: record.discordUser?.avatar
-    };
-
-    const safePayload = {
-      id,
-      player_name: record.playerName,
-      guild: record.guild,
-      damage_value: record.damageValue,
-      timestamp,
-      screenshot_url: record.screenshotUrl
     };
 
     try {
@@ -96,36 +93,40 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
 
       if (!response.ok) {
         const errorData = await response.json();
-        // Si el error es específicamente por columnas faltantes (código 42703), reintenta sin ellas
-        if (errorData.code === '42703' || errorData.message?.includes('discord_')) {
-          console.warn("Reintentando guardado sin columnas de Discord...");
-          const retryRes = await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
+        // Manejo de columnas faltantes si no se han creado en Supabase
+        if (errorData.code === '42703') {
+           await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
             method: 'POST',
-            headers: {
-              'apikey': config.supabaseKey,
-              'Authorization': `Bearer ${config.supabaseKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(safePayload)
+            headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id, player_name: record.playerName, guild: record.guild, 
+                damage_value: record.damageValue, timestamp, screenshot_url: record.screenshotUrl
+            })
           });
-          if (!retryRes.ok) {
-            const retryError = await retryRes.json();
-            throw new Error(retryError.message || "Fallo en guardado seguro");
-          }
-        } else {
-          throw new Error(errorData.message || "Error desconocido en base de datos");
         }
       }
     } catch (e: any) { 
-      throw new Error(e.message);
+      console.error("Error subiendo a la nube:", e);
     }
   }
   
-  // Guardado local de respaldo siempre
-  const records = await getRecords();
-  const newRecord = { ...record, id, timestamp };
-  records.unshift(newRecord);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
+  // GUARDADO LOCAL (BACKUP): 
+  // IMPORTANTE: Eliminamos la imagen antes de guardar en LocalStorage para no agotar la cuota de 5MB
+  const { screenshotUrl, ...localBackupRecord } = newRecord;
+  
+  try {
+    const records = await getRecords();
+    // Filtramos registros viejos que puedan tener imágenes pesadas para limpiar el storage
+    const cleanedRecords = records.map(({ screenshotUrl: _, ...r }) => r);
+    cleanedRecords.unshift(localBackupRecord);
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanedRecords.slice(0, 50)));
+  } catch (e) {
+    // Si sigue dando error de cuota, vaciamos el backup local por seguridad
+    console.warn("LocalStorage lleno, limpiando historial local...");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([localBackupRecord]));
+  }
+
   return newRecord;
 };
 
