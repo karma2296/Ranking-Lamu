@@ -21,10 +21,8 @@ const MedalSVG = ({ type, size = "100%" }: { type: 'diamond' | 'gold' | 'silver'
             <stop offset="100%" stopColor="#00f2ff" />
           </linearGradient>
         </defs>
-        {/* Forma de Diamante Estilizada (Skullgirls feel) */}
         <path d="M50 5L90 35L90 65L50 95L10 65L10 35L50 5Z" fill="#0f172a" stroke="url(#grad_dia_border)" strokeWidth="3" />
         <path d="M50 15L80 38L80 62L50 85L20 62L20 38L50 15Z" fill="url(#grad_dia_inner)" opacity="0.4" />
-        {/* Brillos internos */}
         <path d="M50 20L58 45H42L50 20Z" fill="white" opacity="0.6" />
         <path d="M50 80L42 55H58L50 80Z" fill="white" opacity="0.3" />
         <path d="M50 5L50 95M10 35L90 65M90 35L10 65" stroke="url(#grad_dia_border)" strokeWidth="1" opacity="0.3" />
@@ -41,7 +39,6 @@ const MedalSVG = ({ type, size = "100%" }: { type: 'diamond' | 'gold' | 'silver'
             <stop offset="100%" stopColor="#d97706" />
           </linearGradient>
         </defs>
-        {/* Forma de Engranaje/Estrella Art Déco */}
         <circle cx="50" cy="50" r="45" fill="#0f172a" stroke="url(#grad_gold)" strokeWidth="4" />
         <path d="M50 12 L55 35 L78 35 L60 50 L68 73 L50 58 L32 73 L40 50 L22 35 L45 35 Z" fill="url(#grad_gold)" />
         <circle cx="50" cy="50" r="32" stroke="url(#grad_gold)" strokeWidth="1" strokeDasharray="4 2" opacity="0.5" />
@@ -57,7 +54,6 @@ const MedalSVG = ({ type, size = "100%" }: { type: 'diamond' | 'gold' | 'silver'
           <stop offset="100%" stopColor="#475569" />
         </linearGradient>
       </defs>
-      {/* Forma de Escudo */}
       <path d="M15 20 Q50 5 85 20 V60 Q50 95 15 60 Z" fill="#0f172a" stroke="url(#grad_silver)" strokeWidth="4" />
       <path d="M30 35 H70 V55 Q50 80 30 55 Z" fill="url(#grad_silver)" opacity="0.8" />
       <rect x="45" y="40" width="10" height="20" fill="#0f172a" opacity="0.5" />
@@ -82,7 +78,6 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
       {top3.length > 0 && (
         <div className="grid grid-cols-3 gap-2 md:gap-8 items-end max-w-4xl mx-auto pt-24 pb-12">
           
-          {/* TOP 2 - ORO (IZQUIERDA) */}
           {top3[1] ? (
             <div className="flex flex-col items-center group">
               <div className="relative mb-6">
@@ -99,7 +94,6 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
             </div>
           ) : <div />}
 
-          {/* TOP 1 - DIAMANTE (CENTRO) - MVP */}
           {top3[0] && (
             <div className="flex flex-col items-center group -translate-y-12">
               <div className="relative mb-6">
@@ -117,7 +111,6 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
             </div>
           )}
 
-          {/* TOP 3 - PLATA (DERECHA) */}
           {top3[2] ? (
             <div className="flex flex-col items-center group">
               <div className="relative mb-6">
@@ -136,7 +129,6 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
         </div>
       )}
 
-      {/* TABLA DE POSICIONES */}
       <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-800/60 overflow-hidden shadow-2xl backdrop-blur-md">
         <table className="w-full text-left">
           <thead className="bg-slate-950/60 border-b border-slate-800/80">
@@ -172,7 +164,7 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-100 group-hover:text-white transition-colors tracking-tight">{player.playerName}</h4>
-                      <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.1em]">{player.guild === 'Principal' ? 'Elite Division' : 'Trainee Division'}</p>
+                      <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.1em]">{player.guild === 'Principal' ? 'Lamu Principal' : 'Lamu Secundario'}</p>
                     </div>
                   </div>
                 </td>

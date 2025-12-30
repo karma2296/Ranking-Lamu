@@ -35,7 +35,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage("Subiendo captura...");
+    setStatusMessage("Procesando imagen...");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -43,22 +43,22 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
       setPreviewUrl(base64);
       
       try {
-        setStatusMessage("Gemini Pro analizando interfaz...");
+        setStatusMessage("Buscando datos en la interfaz...");
         const result = await analyzeDamageScreenshot(base64);
         
         if (result.playerName) setPlayerName(result.playerName);
         if (result.damageValue) setDamageValue(result.damageValue.toString());
         
-        if (!result.playerName && !result.damageValue) {
-          setStatusMessage("No se detectaron datos. Intenta con otra captura.");
+        if (result.playerName || result.damageValue) {
+          setStatusMessage("¡Análisis exitoso!");
         } else {
-          setStatusMessage("¡Datos extraídos con éxito!");
+          setStatusMessage("No pude leer los datos. Intenta con una imagen más clara.");
         }
         
         setTimeout(() => setStatusMessage(null), 3000);
       } catch (err) {
-        console.error(err);
-        setStatusMessage("Error en el escaneo automático. Ingresa los datos manualmente.");
+        console.error("Error de análisis:", err);
+        setStatusMessage("Error en el escaneo. Por favor, completa los campos manualmente.");
       } finally { 
         setIsAnalyzing(false); 
       }
@@ -68,12 +68,12 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName || !damageValue) return alert("Faltan datos");
+    if (!playerName || !damageValue) return alert("Faltan datos obligatorios");
 
     const val = parseInt(damageValue.toString().replace(/[^0-9]/g, ''));
-    if (isNaN(val)) return alert("El daño debe ser un número");
+    if (isNaN(val)) return alert("El daño debe ser un número válido");
 
-    setStatusMessage("Guardando en la nube...");
+    setStatusMessage("Registrando daño...");
     try {
       await saveRecord({ 
         playerName, 
@@ -95,7 +95,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
       }
       onSuccess();
     } catch (e) {
-      alert("Error al guardar");
+      alert("Error al guardar el registro");
       setStatusMessage(null);
     }
   };
@@ -106,13 +106,10 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         
         {isAnalyzing && (
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40 flex flex-col items-center justify-center space-y-6">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center text-xl">👁️</div>
-            </div>
+            <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
             <div className="text-center">
-              <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">Escaneando con Pro AI</p>
-              <p className="text-slate-500 text-[10px] mt-2 font-bold uppercase">Leyendo tipografía de Skullgirls...</p>
+              <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">Escaneando con IA Pro</p>
+              <p className="text-slate-500 text-[10px] mt-2 font-bold uppercase">Detectando Guerrero y Daño...</p>
             </div>
           </div>
         )}
@@ -133,9 +130,9 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="text-5xl">🖼️</div>
+              <div className="text-5xl">📸</div>
               <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Sube tu captura de Daño</p>
-              <p className="text-slate-600 text-[9px] uppercase font-bold">Asegúrate de que se vea el nombre arriba a la izquierda</p>
+              <p className="text-slate-600 text-[9px] uppercase font-bold">Usa la pantalla de 'TOTAL PERSONAL DAMAGE'</p>
             </div>
           )}
         </div>
@@ -153,30 +150,30 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
               onClick={() => setGuild('Principal')} 
               className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Principal' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
             >
-              División I (Elite)
+              Lamu Principal
             </button>
             <button 
               type="button" 
               onClick={() => setGuild('Secundario')} 
               className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Secundario' ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
             >
-              División II (Trainee)
+              Lamu Secundario
             </button>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Guerrero</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Nombre del Guerrero</label>
             <input 
               type="text" 
               value={playerName} 
               onChange={(e) => setPlayerName(e.target.value)} 
-              placeholder="Tu Nick" 
+              placeholder="Detectando..." 
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black outline-none focus:border-indigo-500 transition-colors" 
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Daño Personal</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Daño Personal Total</label>
             <input 
               type="text" 
               value={damageValue} 
@@ -191,7 +188,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             disabled={isAnalyzing} 
             className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-black py-6 rounded-2xl uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 disabled:opacity-50"
           >
-            {isAnalyzing ? 'ESPERANDO RESPUESTA...' : 'ENVIAR REPORTE'}
+            {isAnalyzing ? 'PROCESANDO...' : 'CONFIRMAR Y SUBIR'}
           </button>
         </form>
       </div>

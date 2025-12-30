@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Usamos Pro para mayor capacidad de razonamiento visual en fuentes estilizadas
+// Usamos Pro para máxima capacidad de visión en fuentes complejas
 const MODEL_NAME = 'gemini-3-pro-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
@@ -11,21 +11,19 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
-  const prompt = `Analiza detalladamente esta captura de pantalla de "Skullgirls Mobile" (Pantalla de DAÑO).
+  // Prompt optimizado para la pantalla de "DAÑO" de Skullgirls Mobile
+  const prompt = `Analiza esta captura de pantalla de resultados de batalla del juego "Skullgirls Mobile".
   
-  CONTEXTO VISUAL:
-  - El encabezado superior dice "DAÑO" en letras grandes.
-  - El NOMBRE DEL JUGADOR está en la esquina SUPERIOR IZQUIERDA, dentro de una placa dorada/amarilla, justo encima de la barra de nivel (ej: "NV 78").
-  - El DAÑO está en el CENTRO, debajo de la etiqueta "TOTAL PERSONAL DAMAGE". Es un número largo con puntos (ej: 558.672.041).
+  PASOS DE ANÁLISIS:
+  1. Localiza la placa dorada en la esquina SUPERIOR IZQUIERDA. Dentro hay un nombre de usuario y un nivel (ej. NV 78). Extrae el NOMBRE DE USUARIO (ignora "NV" y el número).
+  2. Localiza el texto "TOTAL PERSONAL DAMAGE" en el centro de la pantalla. Justo debajo hay un número grande con puntos decimales. Extrae ese NÚMERO completo.
   
-  TAREAS:
-  1. Identifica el texto en la placa dorada de arriba a la izquierda. Ese es el 'playerName'. Ignora el nivel (NV XX).
-  2. Identifica el número grande blanco/dorado debajo de "TOTAL PERSONAL DAMAGE". Ese es el 'damageValue'.
+  REGLAS CRÍTICAS:
+  - El nombre del jugador suele estar en mayúsculas (ej: QUE HACKER).
+  - El daño es un número entero largo (ej: 558672041). Elimina puntos o comas al devolverlo.
+  - No confundas "TOTAL PERSONAL DAMAGE" con "TOTAL DAMAGE" (que aparece más abajo con un icono de calavera). Queremos el de ARRIBA, el PERSONAL.
   
-  REGLAS DE SALIDA:
-  - Devuelve el daño como un número entero, sin puntos ni comas.
-  - Si el nombre tiene caracteres especiales como "*" o "_" inclúyelos.
-  - Responde solo con JSON.`;
+  Responde estrictamente en formato JSON.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -37,31 +35,32 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
         ]
       },
       config: {
-        systemInstruction: "Eres un experto en lectura de interfaces de usuario (UI) de Skullgirls Mobile. Tu precisión es del 100% leyendo nombres de jugadores y valores de daño en capturas de pantalla.",
+        systemInstruction: "Eres un sistema de OCR especializado en videojuegos. Tu única misión es extraer el 'playerName' y el 'damageValue' de capturas de Skullgirls Mobile. Eres extremadamente preciso con los números y nombres estilizados.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             playerName: { 
               type: Type.STRING,
-              description: "El nombre exacto del jugador en la esquina superior izquierda."
+              description: "El nombre del jugador detectado en la esquina superior izquierda."
             },
             damageValue: { 
               type: Type.INTEGER, 
-              description: "El valor numérico del Total Personal Damage."
+              description: "El valor numérico del daño personal (sin puntos ni comas)."
             }
-          }
+          },
+          required: ["playerName", "damageValue"]
         },
-        temperature: 0, // Máxima precisión, mínima creatividad
+        temperature: 0,
       }
     });
 
     const jsonStr = response.text?.trim();
-    if (!jsonStr) return {};
+    if (!jsonStr) throw new Error("Respuesta vacía de la IA");
     
     return JSON.parse(jsonStr);
   } catch (error: any) {
-    console.error("Error en Gemini Pro:", error);
+    console.error("Error detallado en Gemini Pro:", error);
     throw error;
   }
 };
