@@ -7,58 +7,48 @@ const MODEL_NAME = 'gemini-3-pro-preview';
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  const mimeMatch = base64Image.match(/^data:(image\/[a-z]+);base64,/);
-  const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
-  // Prompt simplificado y directo enfocado en la posición de los elementos
-  const prompt = `Analiza esta captura de pantalla de Skullgirls Mobile.
+  const prompt = `Analiza detalladamente esta captura de pantalla de "Skullgirls Mobile".
   
-  EXTRACCIÓN REQUERIDA:
-  1. NOMBRE DEL JUGADOR: Ubicado en la esquina SUPERIOR IZQUIERDA (ej: "AshaZeba", "QUE HACKER"). Ignora el nivel "NV XX".
-  2. DAÑO TOTAL PERSONAL: Ubicado en el CENTRO de la pantalla, justo a la IZQUIERDA del contador de "TIME" y debajo de la etiqueta "TOTAL PERSONAL DAMAGE". Es un número largo con puntos (ej: 349.632.248).
+  TU OBJETIVO:
+  1. EXTRAER EL NOMBRE DEL JUGADOR: Está en la esquina SUPERIOR IZQUIERDA, dentro de una placa dorada con diseño Art Déco. Ignora el nivel (ej: NV 78).
+  2. EXTRAER EL DAÑO PERSONAL: Está en el CENTRO de la pantalla, justo debajo de la etiqueta "TOTAL PERSONAL DAMAGE" y a la IZQUIERDA del contador de tiempo "00:00" (TIME). Es un número blanco o dorado muy grande con puntos (ej: 349.632.248).
   
-  REGLAS:
-  - Extrae el daño como un número entero puro (sin puntos ni comas).
-  - Si el nombre tiene símbolos, inclúyelos.
-  - Responde ÚNICAMENTE en formato JSON.`;
+  REGLAS DE FORMATO:
+  - Devuelve el daño como un número entero puro (sin puntos ni comas).
+  - El nombre puede contener caracteres especiales o puntos.
+  - Responde exclusivamente en JSON.`;
 
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
         parts: [
-          { inlineData: { mimeType: mimeType, data: base64Data } },
+          { inlineData: { mimeType: 'image/png', data: base64Data } },
           { text: prompt }
         ]
       },
       config: {
-        systemInstruction: "Eres un sistema OCR de alta precisión para Skullgirls Mobile. Te enfocas en la esquina superior izquierda para el nombre y el centro para el daño personal total.",
+        systemInstruction: "Eres un experto en lectura de interfaces de usuario (UI) de Skullgirls Mobile. Tu precisión leyendo nombres de jugadores y valores de daño es absoluta.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            playerName: { 
-              type: Type.STRING,
-              description: "Nombre exacto del jugador en la esquina superior izquierda."
-            },
-            damageValue: { 
-              type: Type.INTEGER, 
-              description: "Valor numérico del Total Personal Damage en el centro."
-            }
+            playerName: { type: Type.STRING },
+            damageValue: { type: Type.INTEGER }
           },
           required: ["playerName", "damageValue"]
         },
-        temperature: 0, // Cero para evitar alucinaciones
+        temperature: 0.1,
       }
     });
 
     const text = response.text;
-    if (!text) throw new Error("La IA no devolvió texto.");
-    
+    if (!text) throw new Error("No se obtuvo respuesta de la IA");
     return JSON.parse(text);
   } catch (error: any) {
-    console.error("Error en el análisis de Gemini:", error);
+    console.error("Error OCR:", error);
     throw error;
   }
 };

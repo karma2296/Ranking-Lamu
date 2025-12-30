@@ -62,12 +62,13 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
   
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
         method: 'POST',
         headers: {
           'apikey': config.supabaseKey,
           'Authorization': `Bearer ${config.supabaseKey}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
         },
         body: JSON.stringify({
           id,
@@ -81,7 +82,16 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
           discord_avatar: record.discordUser?.avatar
         })
       });
-    } catch (e) { console.error(e); }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al subir a la nube");
+      }
+    } catch (e: any) { 
+      console.error("Error Supabase:", e); 
+      // Si la nube falla, intentamos guardar local pero avisamos
+      throw new Error("No se pudo conectar con la base de datos: " + e.message);
+    }
   }
   
   const records = await getRecords();
