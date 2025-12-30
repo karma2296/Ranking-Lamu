@@ -1,0 +1,8 @@
+
+{
+  "name": "Lamu - Ranking de Daño",
+  "description": "Panel de control para el gremio Lamu. Rastreo de daño al boss semanal con análisis de capturas por IA.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
