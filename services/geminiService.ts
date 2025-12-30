@@ -1,7 +1,8 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const MODEL_NAME = 'gemini-3-flash-preview';
+// Usamos Pro para mayor capacidad de razonamiento visual en fuentes estilizadas
+const MODEL_NAME = 'gemini-3-pro-preview';
 
 export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -10,18 +11,21 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
-  // Prompt ultra-específico para la interfaz de Skullgirls Mobile
-  const prompt = `Analiza esta captura de pantalla de resultados del juego Skullgirls Mobile.
+  const prompt = `Analiza detalladamente esta captura de pantalla de "Skullgirls Mobile" (Pantalla de DAÑO).
   
-  TU OBJETIVO:
-  1. Extraer el NOMBRE DEL JUGADOR: Se encuentra en la parte superior izquierda, generalmente junto a un icono de nivel o avatar. Es el nombre del usuario que está jugando.
-  2. Extraer el DAÑO TOTAL: Busca el campo numérico asociado a "TOTAL PERSONAL DAMAGE", "DAÑO TOTAL PERSONAL" o "TOTAL DAMAGE". Es un número grande (millones habitualmente).
+  CONTEXTO VISUAL:
+  - El encabezado superior dice "DAÑO" en letras grandes.
+  - El NOMBRE DEL JUGADOR está en la esquina SUPERIOR IZQUIERDA, dentro de una placa dorada/amarilla, justo encima de la barra de nivel (ej: "NV 78").
+  - El DAÑO está en el CENTRO, debajo de la etiqueta "TOTAL PERSONAL DAMAGE". Es un número largo con puntos (ej: 558.672.041).
   
-  REGLAS:
-  - Ignora el nivel numérico (ej: si dice "Lvl 70 Username", extrae solo "Username").
-  - Para el daño, extrae solo los dígitos (ignora puntos o comas de miles).
-  - Si no encuentras el nombre arriba a la izquierda, búscalo en el resumen de la batalla.
-  - Responde ÚNICAMENTE con el JSON solicitado.`;
+  TAREAS:
+  1. Identifica el texto en la placa dorada de arriba a la izquierda. Ese es el 'playerName'. Ignora el nivel (NV XX).
+  2. Identifica el número grande blanco/dorado debajo de "TOTAL PERSONAL DAMAGE". Ese es el 'damageValue'.
+  
+  REGLAS DE SALIDA:
+  - Devuelve el daño como un número entero, sin puntos ni comas.
+  - Si el nombre tiene caracteres especiales como "*" o "_" inclúyelos.
+  - Responde solo con JSON.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -33,36 +37,31 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
         ]
       },
       config: {
-        systemInstruction: "Eres un asistente experto en OCR para videojuegos. Tu especialidad es leer interfaces de Skullgirls Mobile. Eres preciso, rápido y solo devuelves JSON puro sin texto adicional.",
+        systemInstruction: "Eres un experto en lectura de interfaces de usuario (UI) de Skullgirls Mobile. Tu precisión es del 100% leyendo nombres de jugadores y valores de daño en capturas de pantalla.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             playerName: { 
               type: Type.STRING,
-              description: "El nombre de usuario detectado en la captura."
+              description: "El nombre exacto del jugador en la esquina superior izquierda."
             },
             damageValue: { 
-              type: Type.NUMBER, 
-              description: "El valor numérico del daño total personal sin símbolos."
+              type: Type.INTEGER, 
+              description: "El valor numérico del Total Personal Damage."
             }
-          },
-          required: ["playerName", "damageValue"]
+          }
         },
-        temperature: 0.1, // Baja temperatura para mayor precisión en OCR
+        temperature: 0, // Máxima precisión, mínima creatividad
       }
     });
 
     const jsonStr = response.text?.trim();
     if (!jsonStr) return {};
     
-    const result = JSON.parse(jsonStr);
-    // Limpieza adicional por si acaso
-    if (result.damageValue) result.damageValue = Math.floor(Number(result.damageValue));
-    
-    return result;
+    return JSON.parse(jsonStr);
   } catch (error: any) {
-    console.error("Error en Gemini API:", error);
+    console.error("Error en Gemini Pro:", error);
     throw error;
   }
 };
