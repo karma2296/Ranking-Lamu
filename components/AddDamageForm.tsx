@@ -27,7 +27,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
       img.src = base64;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1000; // Un poco más pequeña para asegurar estabilidad
+        // Reducimos a 1280px para que la IA lea bien pero no pese tanto
+        const MAX_WIDTH = 1280;
         let width = img.width;
         let height = img.height;
         if (width > MAX_WIDTH) {
@@ -38,7 +39,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.6)); // Bajamos calidad para máxima compatibilidad
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
     });
   };
@@ -48,7 +49,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage("Preparando captura...");
+    setStatusMessage("Procesando imagen...");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -57,16 +58,17 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
       setPreviewUrl(compressed);
       
       try {
-        setStatusMessage("IA leyendo nombre y daño...");
+        setStatusMessage("🤖 IA analizando captura...");
         const result = await analyzeDamageScreenshot(compressed);
         
         if (result.playerName) setPlayerName(result.playerName);
         if (result.damageValue) setDamageValue(result.damageValue.toString());
         
-        setStatusMessage("✓ Lectura completada");
+        setStatusMessage("✓ ¡Datos leídos con éxito!");
         setTimeout(() => setStatusMessage(null), 3000);
-      } catch (err) {
-        setStatusMessage("⚠ No pude leer la imagen. Escribe los datos manualmente.");
+      } catch (err: any) {
+        console.error(err);
+        setStatusMessage("⚠️ No pude leer los datos. Por favor, rellena los campos a mano.");
       } finally { 
         setIsAnalyzing(false); 
       }
@@ -78,11 +80,11 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     e.preventDefault();
     if (!playerName || !damageValue) return alert("Faltan datos");
 
-    const val = parseInt(damageValue.replace(/[^0-9]/g, ''));
+    const val = parseInt(damageValue.toString().replace(/[^0-9]/g, ''));
     if (isNaN(val)) return alert("El daño debe ser un número");
 
     setIsSaving(true);
-    setStatusMessage("Enviando reporte...");
+    setStatusMessage("Guardando en base de datos...");
     try {
       const record = { 
         playerName, 
@@ -111,8 +113,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     return (
       <div className="max-w-xl mx-auto py-20 text-center bg-slate-900 border border-slate-800 rounded-[2.5rem] p-12">
         <h2 className="text-2xl font-black text-white mb-4 uppercase italic">Identificación Requerida</h2>
-        <p className="text-slate-400 mb-10">Para evitar spam, debes conectar Discord para subir tus capturas.</p>
-        <button onClick={onLoginRequest} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs transition-all shadow-xl">Conectar con Discord</button>
+        <p className="text-slate-400 mb-10">Conecta tu cuenta de Discord para poder reportar daños al gremio.</p>
+        <button onClick={onLoginRequest} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs transition-all shadow-xl">🛰️ Login con Discord</button>
       </div>
     );
   }
@@ -125,7 +127,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40 flex flex-col items-center justify-center space-y-6">
             <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
             <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">
-              {isAnalyzing ? 'Leyendo Pantalla...' : 'Guardando Daño...'}
+              {isAnalyzing ? 'La IA está leyendo...' : 'Sincronizando...'}
             </p>
           </div>
         )}
@@ -148,7 +150,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             <div className="space-y-3">
               <div className="text-5xl">📸</div>
               <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Sube tu captura</p>
-              <p className="text-slate-600 text-[8px] uppercase font-bold">Pantalla de Daño Personal Total</p>
+              <p className="text-slate-600 text-[8px] uppercase font-bold">Pantalla de Daño Personal de Skullgirls</p>
             </div>
           )}
         </div>
@@ -183,7 +185,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
               type="text" 
               value={playerName} 
               onChange={(e) => setPlayerName(e.target.value)} 
-              placeholder="Nombre en el juego" 
+              placeholder="Detectando..." 
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black outline-none focus:border-indigo-500 transition-colors" 
             />
           </div>
@@ -194,7 +196,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
               type="text" 
               value={damageValue} 
               onChange={(e) => setDamageValue(e.target.value)} 
-              placeholder="Ej: 349632248" 
+              placeholder="000.000.000" 
               className="w-full bg-slate-950 border border-slate-800 rounded-3xl px-6 py-6 font-mono text-3xl font-black text-cyan-400 outline-none focus:border-cyan-500 transition-colors placeholder:text-slate-800 text-center" 
             />
           </div>
@@ -202,9 +204,9 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
           <button 
             type="submit" 
             disabled={isAnalyzing || isSaving} 
-            className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-black py-6 rounded-2xl uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-black py-6 rounded-2xl uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 disabled:opacity-50 shadow-xl"
           >
-            {isSaving ? 'GUARDANDO...' : 'CONFIRMAR REPORTE'}
+            {isSaving ? 'ENVIANDO...' : 'CONFIRMAR REPORTE'}
           </button>
         </form>
       </div>

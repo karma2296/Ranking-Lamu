@@ -61,7 +61,6 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
   const id = crypto.randomUUID();
   
   if (config?.supabaseUrl && config?.supabaseKey) {
-    // Intentamos primero el guardado COMPLETO (con datos de Discord)
     const fullPayload = {
       id,
       player_name: record.playerName,
@@ -74,7 +73,6 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
       discord_avatar: record.discordUser?.avatar
     };
 
-    // Payload SEGURO (solo columnas básicas que sabemos que existen)
     const safePayload = {
       id,
       player_name: record.playerName,
@@ -98,9 +96,9 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
 
       if (!response.ok) {
         const errorData = await response.json();
-        // Si el error dice que falta una columna de discord, reintentamos con el payload seguro
-        if (errorData.message?.includes('column') || errorData.code === '42703') {
-          console.warn("Detectadas columnas faltantes en Supabase, reintentando guardado seguro...");
+        // Si el error es específicamente por columnas faltantes (código 42703), reintenta sin ellas
+        if (errorData.code === '42703' || errorData.message?.includes('discord_')) {
+          console.warn("Reintentando guardado sin columnas de Discord...");
           const retryRes = await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
             method: 'POST',
             headers: {
@@ -110,17 +108,20 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
             },
             body: JSON.stringify(safePayload)
           });
-          if (!retryRes.ok) throw new Error("Error incluso en guardado seguro");
+          if (!retryRes.ok) {
+            const retryError = await retryRes.json();
+            throw new Error(retryError.message || "Fallo en guardado seguro");
+          }
         } else {
-          throw new Error(errorData.message || "Error al subir a la nube");
+          throw new Error(errorData.message || "Error desconocido en base de datos");
         }
       }
     } catch (e: any) { 
-      console.error("Error Crítico Supabase:", e); 
-      throw new Error("Base de Datos: " + e.message);
+      throw new Error(e.message);
     }
   }
   
+  // Guardado local de respaldo siempre
   const records = await getRecords();
   const newRecord = { ...record, id, timestamp };
   records.unshift(newRecord);
