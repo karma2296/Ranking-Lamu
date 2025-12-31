@@ -15,7 +15,6 @@ export const isCloudConnected = async (): Promise<boolean> => {
   return true; 
 };
 
-// Nueva función para saber si el usuario ya empezó su temporada
 export const hasUserStartedSeason = async (discordId: string): Promise<boolean> => {
   const config = getSupabaseConfig();
   if (!config?.supabaseUrl || !config?.supabaseKey) return false;
@@ -106,6 +105,8 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
       record_type: record.recordType,
       total_damage: record.totalDamage,
       ticket_damage: record.ticketDamage,
+      // Mantenemos compatibilidad con columnas antiguas si existen
+      damage_value: record.ticketDamage, 
       timestamp,
       screenshot_url: record.screenshotUrl,
       discord_id: record.discordUser?.id,
@@ -125,8 +126,8 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
     });
 
     if (!response.ok) {
-      const errorMsg = await response.text();
-      throw new Error(`Error Supabase (${response.status}): ${errorMsg}`);
+      const errorData = await response.json();
+      throw new Error(`Error Supabase (${response.status}): ${errorData.message || JSON.stringify(errorData)}`);
     }
   }
   

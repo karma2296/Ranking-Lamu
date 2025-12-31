@@ -157,20 +157,20 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2 relative">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Total (Base)</label>
-              <div className="relative overflow-hidden rounded-2xl">
+              <div className="relative overflow-hidden rounded-2xl group/blocked">
                 <input 
                   type="text" 
                   value={totalDamage} 
                   onChange={e => setTotalDamage(e.target.value)} 
                   disabled={!isFirstEntry}
                   placeholder={isFirstEntry ? "Ej: 340.000.000" : ""}
-                  className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg transition-all ${isFirstEntry ? 'text-white border-indigo-500/50' : 'text-slate-800 opacity-40 grayscale pointer-events-none'}`} 
+                  className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg transition-all ${isFirstEntry ? 'text-white border-indigo-500/50' : 'text-slate-800 opacity-20 grayscale cursor-not-allowed'}`} 
                 />
                 {!isFirstEntry && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="bg-rose-600 text-white text-[9px] font-black px-3 py-1 rounded-md uppercase tracking-[0.2em] shadow-lg animate-pulse border border-rose-400">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-rose-950/20 backdrop-blur-[2px]">
+                    <div className="bg-rose-600 text-white text-[11px] font-black px-4 py-1.5 rounded-lg uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(225,29,72,0.5)] border-2 border-rose-400 rotate-[-5deg] scale-110 animate-pulse">
                       BLOQUEADO
-                    </span>
+                    </div>
                   </div>
                 )}
               </div>
