@@ -15,11 +15,40 @@ export const isCloudConnected = async (): Promise<boolean> => {
   return true; 
 };
 
+// Función rápida para el Ranking (NO descarga imágenes)
+export const getRankingRecords = async (): Promise<DamageRecord[]> => {
+  const config = getSupabaseConfig();
+  if (config?.supabaseUrl && config?.supabaseKey) {
+    try {
+      // Pedimos solo las columnas necesarias, excluyendo screenshot_url para velocidad
+      const columns = 'id,player_name,guild,record_type,total_damage,ticket_damage,timestamp,discord_id,discord_username,discord_avatar';
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${columns}&order=timestamp.desc`, {
+        headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.map((r: any) => ({
+          id: r.id,
+          playerName: r.player_name,
+          guild: r.guild,
+          recordType: r.record_type as RecordType,
+          totalDamage: parseInt(r.total_damage || 0),
+          ticketDamage: parseInt(r.ticket_damage || 0),
+          timestamp: r.timestamp,
+          discordUser: r.discord_id ? { id: r.discord_id, username: r.discord_username, avatar: r.discord_avatar } : undefined
+        }));
+      }
+    } catch (e) { console.error(e); }
+  }
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+};
+
+// Función para el Historial (Solo las últimas 20 con imagen)
 export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc`, {
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc&limit=20`, {
         headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
       });
       if (response.ok) {
@@ -75,22 +104,21 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
     } catch (e) { console.error("Error nube:", e); }
   }
   
-  // Backup local sin imagen
+  // Backup local limitado
   const { screenshotUrl, ...light } = newRecord;
   const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   history.unshift(light);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 100)));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
 
   return newRecord;
 };
 
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
-  const records = await getRecords();
+  const records = await getRankingRecords(); // Usamos la versión rápida sin imágenes
   const statsMap = new Map<string, PlayerStats>();
   const now = Date.now();
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
-  // Procesar registros por cada usuario de Discord (id)
   const userIds = Array.from(new Set(records.map(r => r.discordUser?.id).filter(Boolean)));
 
   userIds.forEach(uid => {
@@ -100,11 +128,9 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
     const initial = userRecords.find(r => r.recordType === 'INITIAL') || userRecords[0];
     const initialTotal = initial.totalDamage || 0;
     
-    // Sumamos todos los TICKET de los registros POSTERIORES al inicial
-    const incrementalTickets = userRecords.filter(r => r.timestamp > initial.timestamp && r.recordType === 'INCREMENTAL');
+    const incrementalTickets = userRecords.filter(r => r.timestamp > initial.timestamp);
     const totalTicketsSum = incrementalTickets.reduce((acc, r) => acc + (r.ticketDamage || 0), 0);
     
-    // Daño máximo hoy (últimas 24h)
     const dailyTickets = userRecords.filter(r => (now - r.timestamp) < ONE_DAY);
     const maxDaily = dailyTickets.length > 0 ? Math.max(...dailyTickets.map(r => r.ticketDamage || 0)) : 0;
 
@@ -124,6 +150,22 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
   return Array.from(statsMap.values()).sort((a, b) => b.accumulatedTotal - a.accumulatedTotal);
 };
 
-export const checkAndPerformAutoReset = async () => {}; // Deshabilitado para mantener persistencia de cuentas
-export const clearAllData = async () => { localStorage.removeItem(STORAGE_KEY); };
+export const clearAllData = async () => {
+  const config = getSupabaseConfig();
+  if (config?.supabaseUrl && config?.supabaseKey) {
+    try {
+      // En Supabase REST, para borrar todo se suele usar un filtro que siempre sea cierto
+      await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=neq.00000000-0000-0000-0000-000000000000`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': config.supabaseKey,
+          'Authorization': `Bearer ${config.supabaseKey}`
+        }
+      });
+    } catch (e) { console.error(e); }
+  }
+  localStorage.removeItem(STORAGE_KEY);
+};
+
+export const checkAndPerformAutoReset = async () => {};
 export const deleteRecord = async (id: string) => {};
