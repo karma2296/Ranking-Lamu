@@ -15,14 +15,30 @@ export const isCloudConnected = async (): Promise<boolean> => {
   return true; 
 };
 
-// Función rápida para el Ranking (NO descarga imágenes)
+// Nueva función para saber si el usuario ya empezó su temporada
+export const hasUserStartedSeason = async (discordId: string): Promise<boolean> => {
+  const config = getSupabaseConfig();
+  if (!config?.supabaseUrl || !config?.supabaseKey) return false;
+  try {
+    const response = await fetch(
+      `${config.supabaseUrl}/rest/v1/damage_records?discord_id=eq.${discordId}&select=id&limit=1`,
+      { headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` } }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.length > 0;
+    }
+  } catch (e) {}
+  return false;
+};
+
 export const getRankingRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      // Pedimos solo las columnas necesarias, excluyendo screenshot_url para velocidad
       const columns = 'id,player_name,guild,record_type,total_damage,ticket_damage,timestamp,discord_id,discord_username,discord_avatar';
-      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${columns}&order=timestamp.desc`, {
+      // Añadimos cache-buster para asegurar datos frescos
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${columns}&order=timestamp.desc&t=${Date.now()}`, {
         headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
       });
       if (response.ok) {
@@ -43,7 +59,6 @@ export const getRankingRecords = async (): Promise<DamageRecord[]> => {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 };
 
-// Función para el Historial (Solo las últimas 20 con imagen)
 export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
@@ -91,17 +106,21 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
       discord_avatar: record.discordUser?.avatar
     };
 
-    try {
-      await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
-        method: 'POST',
-        headers: {
-          'apikey': config.supabaseKey,
-          'Authorization': `Bearer ${config.supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) { console.error("Error nube:", e); }
+    const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records`, {
+      method: 'POST',
+      headers: {
+        'apikey': config.supabaseKey,
+        'Authorization': `Bearer ${config.supabaseKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorMsg = await response.text();
+      throw new Error(`Error Supabase (${response.status}): ${errorMsg}`);
+    }
   }
   
   // Backup local limitado
@@ -114,7 +133,7 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
 };
 
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
-  const records = await getRankingRecords(); // Usamos la versión rápida sin imágenes
+  const records = await getRankingRecords();
   const statsMap = new Map<string, PlayerStats>();
   const now = Date.now();
   const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -154,7 +173,6 @@ export const clearAllData = async () => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      // En Supabase REST, para borrar todo se suele usar un filtro que siempre sea cierto
       await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=neq.00000000-0000-0000-0000-000000000000`, {
         method: 'DELETE',
         headers: {

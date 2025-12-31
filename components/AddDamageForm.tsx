@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { analyzeDamageScreenshot } from '../services/geminiService';
-import { saveRecord, getRecords } from '../services/dbService';
+import { saveRecord, hasUserStartedSeason } from '../services/dbService';
 import { sendDamageToDiscord } from '../services/discordService';
 import { DiscordUser, RecordType } from '../types';
 
@@ -27,9 +27,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
   useEffect(() => {
     const checkUserHistory = async () => {
       if (!currentUser) return;
-      const history = await getRecords();
-      const hasRecords = history.some(r => r.discordUser?.id === currentUser.id);
-      setIsFirstEntry(!hasRecords);
+      const started = await hasUserStartedSeason(currentUser.id);
+      setIsFirstEntry(!started);
     };
     checkUserHistory();
   }, [currentUser]);
@@ -60,9 +59,14 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName || !ticketDamage || (isFirstEntry && !totalDamage)) return alert("Faltan datos");
+    
+    // Validación de campos
+    if (!playerName || !ticketDamage) return alert("Falta nombre o daño de ticket");
+    if (isFirstEntry && !totalDamage) return alert("Para el primer reporte debes incluir el Daño Total actual.");
 
     setIsSaving(true);
+    setStatusMessage("Sincronizando con la nube...");
+
     try {
       const record = {
         playerName,
@@ -74,11 +78,29 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         discordUser: currentUser!
       };
 
+      // 1. Guardar en Base de Datos
       await saveRecord(record);
+
+      // 2. Enviar a Discord
+      const settings = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+      if (settings.discordWebhook) {
+        setStatusMessage("Enviando a Discord...");
+        await sendDamageToDiscord(settings.discordWebhook, {
+          playerName: record.playerName,
+          guild: record.guild,
+          damageValue: record.ticketDamage,
+          screenshotUrl: record.screenshotUrl,
+          discordUser: currentUser!
+        });
+      }
+
       onSuccess();
-    } catch (err) {
-      alert("Error al guardar");
-    } finally { setIsSaving(false); }
+    } catch (err: any) {
+      alert(`ERROR DE SINCRONIZACIÓN:\n${err.message || 'Error desconocido'}`);
+      setStatusMessage("❌ Falló el guardado");
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
   if (!currentUser) {
@@ -102,7 +124,13 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         ) : (
           <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
             <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em]">📈 SUMANDO TICKET</p>
-            <p className="text-slate-500 text-[9px] mt-1">Solo se sumará el daño de la batalla actual a tu total.</p>
+            <p className="text-slate-500 text-[9px] mt-1">Solo se sumará el daño de la batalla actual a tu total previo.</p>
+          </div>
+        )}
+
+        {statusMessage && (
+          <div className="mb-4 text-center">
+            <span className="text-[10px] font-bold text-indigo-400 animate-pulse uppercase tracking-widest">{statusMessage}</span>
           </div>
         )}
 
@@ -132,8 +160,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
                 value={totalDamage} 
                 onChange={e => setTotalDamage(e.target.value)} 
                 disabled={!isFirstEntry}
-                placeholder="---"
-                className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg ${isFirstEntry ? 'text-white' : 'text-slate-700'}`} 
+                placeholder={isFirstEntry ? "Ej: 340.000.000" : "Ya registrado"}
+                className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg ${isFirstEntry ? 'text-white border-indigo-500/50' : 'text-slate-700'}`} 
               />
             </div>
             <div className="space-y-2">
