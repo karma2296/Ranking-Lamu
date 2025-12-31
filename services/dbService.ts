@@ -37,9 +37,12 @@ export const getRankingRecords = async (): Promise<DamageRecord[]> => {
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
       const columns = 'id,player_name,guild,record_type,total_damage,ticket_damage,timestamp,discord_id,discord_username,discord_avatar';
-      // Añadimos cache-buster para asegurar datos frescos
-      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${columns}&order=timestamp.desc&t=${Date.now()}`, {
-        headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${columns}&order=timestamp.desc`, {
+        headers: { 
+          'apikey': config.supabaseKey, 
+          'Authorization': `Bearer ${config.supabaseKey}`,
+          'Cache-Control': 'no-cache'
+        }
       });
       if (response.ok) {
         const data = await response.json();
@@ -64,7 +67,11 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
       const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc&limit=20`, {
-        headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
+        headers: { 
+          'apikey': config.supabaseKey, 
+          'Authorization': `Bearer ${config.supabaseKey}`,
+          'Cache-Control': 'no-cache'
+        }
       });
       if (response.ok) {
         const data = await response.json();
@@ -123,7 +130,6 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
     }
   }
   
-  // Backup local limitado
   const { screenshotUrl, ...light } = newRecord;
   const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   history.unshift(light);

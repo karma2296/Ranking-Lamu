@@ -60,7 +60,6 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validación de campos
     if (!playerName || !ticketDamage) return alert("Falta nombre o daño de ticket");
     if (isFirstEntry && !totalDamage) return alert("Para el primer reporte debes incluir el Daño Total actual.");
 
@@ -78,10 +77,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         discordUser: currentUser!
       };
 
-      // 1. Guardar en Base de Datos
       await saveRecord(record);
 
-      // 2. Enviar a Discord
       const settings = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
       if (settings.discordWebhook) {
         setStatusMessage("Enviando a Discord...");
@@ -124,7 +121,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         ) : (
           <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
             <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em]">📈 SUMANDO TICKET</p>
-            <p className="text-slate-500 text-[9px] mt-1">Solo se sumará el daño de la batalla actual a tu total previo.</p>
+            <p className="text-slate-500 text-[9px] mt-1">Sincronizado: Tu daño base ya está registrado.</p>
           </div>
         )}
 
@@ -137,7 +134,12 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         <div onClick={() => !isAnalyzing && fileInputRef.current?.click()} className="mb-8 cursor-pointer group">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
           {previewUrl ? (
-            <img src={previewUrl} className="max-h-64 mx-auto rounded-3xl border-2 border-slate-800 group-hover:border-indigo-500/50 transition-all" />
+            <div className="relative">
+              <img src={previewUrl} className="max-h-64 mx-auto rounded-3xl border-2 border-slate-800 group-hover:border-indigo-500/50 transition-all" />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950/40 rounded-3xl">
+                <span className="text-white font-black uppercase text-[10px] tracking-widest bg-slate-900 px-4 py-2 rounded-full border border-white/20">Cambiar Foto</span>
+              </div>
+            </div>
           ) : (
             <div className="border-2 border-dashed border-slate-800 rounded-3xl py-12 text-center group-hover:border-indigo-500/50 transition-all">
               <span className="text-4xl">📸</span>
@@ -153,16 +155,25 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Total (Base)</label>
-              <input 
-                type="text" 
-                value={totalDamage} 
-                onChange={e => setTotalDamage(e.target.value)} 
-                disabled={!isFirstEntry}
-                placeholder={isFirstEntry ? "Ej: 340.000.000" : "Ya registrado"}
-                className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg ${isFirstEntry ? 'text-white border-indigo-500/50' : 'text-slate-700'}`} 
-              />
+              <div className="relative overflow-hidden rounded-2xl">
+                <input 
+                  type="text" 
+                  value={totalDamage} 
+                  onChange={e => setTotalDamage(e.target.value)} 
+                  disabled={!isFirstEntry}
+                  placeholder={isFirstEntry ? "Ej: 340.000.000" : ""}
+                  className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg transition-all ${isFirstEntry ? 'text-white border-indigo-500/50' : 'text-slate-800 opacity-40 grayscale pointer-events-none'}`} 
+                />
+                {!isFirstEntry && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="bg-rose-600 text-white text-[9px] font-black px-3 py-1 rounded-md uppercase tracking-[0.2em] shadow-lg animate-pulse border border-rose-400">
+                      BLOQUEADO
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Ticket</label>
@@ -171,7 +182,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
                 value={ticketDamage} 
                 onChange={e => setTicketDamage(e.target.value)} 
                 placeholder="0"
-                className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-4 text-cyan-400 font-mono font-black text-lg" 
+                className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-4 text-cyan-400 font-mono font-black text-lg focus:border-cyan-500 outline-none transition-all" 
               />
             </div>
           </div>

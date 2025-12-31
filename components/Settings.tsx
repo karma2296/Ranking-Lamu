@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppSettings } from '../types';
 import { clearAllData } from '../services/dbService';
@@ -15,7 +14,6 @@ const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
   const [saved, setSaved] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const currentRedirectUri = window.location.origin + window.location.pathname;
 
   useEffect(() => {
     const s = localStorage.getItem('lamu_settings');
@@ -24,7 +22,6 @@ const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
 
   const handleSave = () => {
     localStorage.setItem('lamu_settings', JSON.stringify(settings));
-    localStorage.setItem('lamu_discord_webhook', settings.discordWebhook); 
     setSaved(true);
     if (onReset) onReset();
     setTimeout(() => setSaved(false), 2000);
@@ -76,17 +73,22 @@ const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
 
       {/* CONFIGURACIÓN TÉCNICA */}
       <div className="grid gap-6">
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4">Configuración de Base de Datos</h4>
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4">Configuración de Base de Datos y Discord</h4>
         <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 space-y-6 backdrop-blur-sm">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Discord Client ID</label>
-              <input type="text" value={settings.discordClientId} onChange={e => setSettings({...settings, discordClientId: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-sm" />
+              <input type="text" value={settings.discordClientId} onChange={e => setSettings({...settings, discordClientId: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-sm" placeholder="ID de la App de Discord" />
             </div>
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Contraseña Admin</label>
               <input type="text" value={settings.adminPassword} onChange={e => setSettings({...settings, adminPassword: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-sm" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Discord Webhook URL</label>
+            <input type="text" value={settings.discordWebhook} onChange={e => setSettings({...settings, discordWebhook: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
           </div>
 
           <div className="space-y-2">
