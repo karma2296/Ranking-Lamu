@@ -149,6 +149,35 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* SELECCIÓN DE GREMIO */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Gremio al que perteneces</label>
+            <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setGuild('Principal')}
+                className={`py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+                  guild === 'Principal' 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Principal
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuild('Secundario')}
+                className={`py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+                  guild === 'Secundario' 
+                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' 
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Secundario
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Nombre del Guerrero</label>
             <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black" />
