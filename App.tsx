@@ -1,30 +1,30 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import RankingTable from './components/RankingTable';
 import AddDamageForm from './components/AddDamageForm';
 import Settings from './components/Settings';
 import { ViewMode, PlayerStats, DamageRecord, DiscordUser } from './types';
-import { getPlayerStats, getRecords, isCloudConnected, checkAndPerformAutoReset } from './services/dbService';
+import { getPlayerStats, getRecords, isCloudConnected, checkAndPerformAutoReset, deleteRecord } from './services/dbService';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewMode>(ViewMode.DASHBOARD);
   const [stats, setStats] = useState<PlayerStats[]>([]);
   const [history, setHistory] = useState<DamageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [cloudStatus, setCloudStatus] = useState<'connected' | 'local'>('local');
   const [currentUser, setCurrentUser] = useState<DiscordUser | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
 
   useEffect(() => {
-    // 1. Procesar Link Maestro (Configuración automática)
     const params = new URLSearchParams(window.location.search);
     const configData = params.get('setup');
     if (configData) {
       try {
         const decoded = atob(configData);
         localStorage.setItem('lamu_settings', decoded);
-        // Limpiar URL y forzar recarga limpia
         window.history.replaceState({}, document.title, window.location.pathname);
         window.location.reload();
         return;
@@ -33,7 +33,6 @@ const App: React.FC = () => {
       }
     }
 
-    // 2. Auth Discord
     const checkDiscordAuth = async () => {
       const fragment = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = fragment.get('access_token');
@@ -73,6 +72,20 @@ const App: React.FC = () => {
     setStats(newStats);
     setHistory(newHistory);
     setIsLoading(false);
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar este registro? Esto afectará al ranking.")) return;
+    
+    setIsDeletingId(id);
+    try {
+      await deleteRecord(id);
+      await refreshData();
+    } catch (e) {
+      alert("Error al borrar el registro");
+    } finally {
+      setIsDeletingId(null);
+    }
   };
 
   const loginWithDiscord = () => {
@@ -142,19 +155,49 @@ const App: React.FC = () => {
               
               {activeView === ViewMode.HISTORY && (
                 <div className="grid gap-4">
-                  {history.length > 0 ? history.map(r => (
-                    <div key={r.id} className="bg-slate-900/50 p-5 rounded-3xl flex items-center justify-between border border-slate-800/50">
-                      <div className="flex items-center gap-4">
-                        <img src={r.screenshotUrl || 'https://via.placeholder.com/100'} className="w-12 h-12 rounded-xl object-cover" />
-                        <div>
-                          <h4 className="font-bold text-white text-sm">{r.playerName}</h4>
-                          <p className="text-[9px] text-slate-500 font-bold uppercase">{new Date(r.timestamp).toLocaleDateString()}</p>
+                  {history.length > 0 ? (
+                    <div className="space-y-4">
+                      {isAdminAuthenticated && (
+                        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 px-4">
+                          MODO ADMINISTRADOR: Puedes eliminar registros erróneos.
+                        </p>
+                      )}
+                      {history.map(r => (
+                        <div key={r.id} className="bg-slate-900/50 p-5 rounded-3xl flex items-center justify-between border border-slate-800/50 group">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <img src={r.screenshotUrl || 'https://via.placeholder.com/100'} className="w-14 h-14 rounded-xl object-cover border border-slate-800" />
+                              <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded text-[8px] font-black uppercase ${r.recordType === 'INITIAL' ? 'bg-indigo-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                                {r.recordType === 'INITIAL' ? 'INI' : 'TKT'}
+                              </span>
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-white text-sm">{r.playerName}</h4>
+                              <p className="text-[9px] text-slate-500 font-bold uppercase">
+                                {new Date(r.timestamp).toLocaleDateString()} {new Date(r.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="text-right">
+                              <span className="block font-mono font-black text-emerald-400 text-lg leading-none">{r.ticketDamage.toLocaleString()}</span>
+                              <span className="text-[8px] text-slate-600 font-black uppercase tracking-tighter">Daño Ticket</span>
+                            </div>
+                            
+                            {isAdminAuthenticated && (
+                              <button 
+                                onClick={() => handleDeleteEntry(r.id)}
+                                disabled={isDeletingId === r.id}
+                                className="p-3 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl transition-all border border-rose-500/20"
+                              >
+                                {isDeletingId === r.id ? '...' : '🗑️'}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {/* Fixed: damageValue does not exist on DamageRecord, using ticketDamage instead */}
-                      <span className="font-mono font-black text-emerald-400 text-lg">{r.ticketDamage.toLocaleString()}</span>
+                      ))}
                     </div>
-                  )) : (
+                  ) : (
                     <div className="py-20 text-center text-slate-600 font-black uppercase text-[10px] tracking-widest">Historial vacío</div>
                   )}
                 </div>
@@ -169,17 +212,20 @@ const App: React.FC = () => {
                       value={adminPasswordInput} 
                       onChange={(e) => setAdminPasswordInput(e.target.value)} 
                       placeholder="Contraseña" 
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white outline-none" 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white outline-none focus:border-indigo-500/50 transition-all" 
                     />
                     <button 
                       onClick={() => { 
                         const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
-                        if (adminPasswordInput === (s.adminPassword || 'admin123')) setIsAdminAuthenticated(true);
-                        else alert("Error");
+                        if (adminPasswordInput === (s.adminPassword || 'admin123')) {
+                          setIsAdminAuthenticated(true);
+                        } else {
+                          alert("Contraseña incorrecta");
+                        }
                       }} 
-                      className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-xs"
+                      className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-600/20"
                     >
-                      Entrar
+                      Identificar Admin
                     </button>
                   </div>
                 ) : <Settings onReset={refreshData} />

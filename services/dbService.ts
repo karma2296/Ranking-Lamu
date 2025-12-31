@@ -65,7 +65,7 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc&limit=20`, {
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc&limit=50`, {
         headers: { 
           'apikey': config.supabaseKey, 
           'Authorization': `Bearer ${config.supabaseKey}`,
@@ -105,7 +105,6 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
       record_type: record.recordType,
       total_damage: record.totalDamage,
       ticket_damage: record.ticketDamage,
-      // Mantenemos compatibilidad con columnas antiguas si existen
       damage_value: record.ticketDamage, 
       timestamp,
       screenshot_url: record.screenshotUrl,
@@ -137,6 +136,31 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
 
   return newRecord;
+};
+
+export const deleteRecord = async (id: string) => {
+  const config = getSupabaseConfig();
+  if (config?.supabaseUrl && config?.supabaseKey) {
+    try {
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': config.supabaseKey,
+          'Authorization': `Bearer ${config.supabaseKey}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error("No se pudo eliminar el registro de la base de datos.");
+      }
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  }
+  
+  const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const filtered = history.filter((r: any) => r.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
 };
 
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
@@ -193,4 +217,3 @@ export const clearAllData = async () => {
 };
 
 export const checkAndPerformAutoReset = async () => {};
-export const deleteRecord = async (id: string) => {};
