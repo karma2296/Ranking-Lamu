@@ -5,11 +5,15 @@ export interface DiscordUser {
   avatar?: string;
 }
 
+export type RecordType = 'INITIAL' | 'INCREMENTAL';
+
 export interface DamageRecord {
   id: string;
   playerName: string;
   guild: 'Principal' | 'Secundario';
-  damageValue: number;
+  recordType: RecordType;
+  totalDamage: number; // El total que aparece en pantalla
+  ticketDamage: number; // El daño de la batalla individual
   timestamp: number;
   screenshotUrl?: string;
   discordUser?: DiscordUser;
@@ -18,10 +22,10 @@ export interface DamageRecord {
 export interface PlayerStats {
   playerName: string;
   guild: 'Principal' | 'Secundario';
-  maxDamage: number;
+  accumulatedTotal: number; // Suma lógica: Inicial + Incrementales
+  maxDailyTicket: number; // El ticket más alto hoy
   totalEntries: number;
   lastUpdated: number;
-  rank?: number;
   discordUser?: DiscordUser;
 }
 

@@ -1,25 +1,28 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Usamos el modelo Pro para la mejor capacidad de visión disponible
 const MODEL_NAME = 'gemini-3-pro-preview';
 
-export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ playerName?: string; damageValue?: number }> => {
+export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ 
+  playerName?: string; 
+  totalDamage?: number; 
+  ticketDamage?: number 
+}> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
-  const prompt = `Analiza detalladamente esta captura de pantalla de los resultados de una batalla en Skullgirls Mobile.
+  const prompt = `Analiza los resultados de batalla de Skullgirls Mobile.
+  Busca y extrae con extrema precisión:
   
-  PASOS DE ANÁLISIS:
-  1. UBICACIÓN DEL NOMBRE: Mira en la esquina SUPERIOR IZQUIERDA. Busca una placa con diseño Art Déco. El nombre del jugador está ahí (ejemplo: "AshaZeba"). No incluyas el nivel (NV. XX).
-  2. UBICACIÓN DEL DAÑO: Busca en la parte CENTRAL o ligeramente hacia la izquierda. Verás un texto que dice "TOTAL PERSONAL DAMAGE" o simplemente un número muy grande con puntos (ejemplo: "349.632.248").
+  1. NOMBRE: Esquina superior izquierda (ignora el nivel NV. XX).
+  2. TOTAL DAMAGE: Busca "TOTAL PERSONAL DAMAGE" o el número más grande acumulado (ej: 349.632.248).
+  3. TICKET DAMAGE: Busca el daño específico de esta batalla, suele estar resaltado tras la pelea (ej: 15.200.000).
   
-  REGLAS DE SALIDA:
-  - playerName: Solo el texto del nombre.
-  - damageValue: Extrae el número del daño eliminando TODOS los puntos y comas. Debe ser un número entero puro.
-  
-  Responde estrictamente en formato JSON.`;
+  Devuelve un JSON con:
+  - playerName (string)
+  - totalDamage (integer, sin puntos ni comas)
+  - ticketDamage (integer, sin puntos ni comas)
+  `;
 
   try {
     const response = await ai.models.generateContent({
@@ -31,28 +34,24 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{ pl
         ]
       },
       config: {
-        systemInstruction: "Eres un experto en lectura de interfaces de usuario de Skullgirls. Ignoras el ruido visual y extraes con precisión el daño personal y el nombre del jugador.",
+        systemInstruction: "Eres un analista de OCR especializado en Skullgirls. Extraes nombres de jugadores y separas el daño acumulado del daño de la batalla actual.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             playerName: { type: Type.STRING },
-            damageValue: { type: Type.INTEGER }
+            totalDamage: { type: Type.INTEGER },
+            ticketDamage: { type: Type.INTEGER }
           },
-          required: ["playerName", "damageValue"]
+          required: ["playerName", "totalDamage", "ticketDamage"]
         },
-        temperature: 0, // Máxima precisión, sin creatividad
+        temperature: 0,
       }
     });
 
-    const text = response.text;
-    if (!text) throw new Error("La IA no devolvió texto.");
-    
-    const parsed = JSON.parse(text);
-    console.log("IA detectó:", parsed);
-    return parsed;
-  } catch (error: any) {
-    console.error("Error en análisis de imagen:", error);
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Error OCR:", error);
     throw error;
   }
 };

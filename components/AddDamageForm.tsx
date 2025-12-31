@@ -1,9 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { analyzeDamageScreenshot } from '../services/geminiService';
-import { saveRecord } from '../services/dbService';
+import { saveRecord, getRecords } from '../services/dbService';
 import { sendDamageToDiscord } from '../services/discordService';
-import { DiscordUser } from '../types';
+import { DiscordUser, RecordType } from '../types';
 
 interface AddDamageFormProps {
   onSuccess: () => void;
@@ -14,199 +14,142 @@ interface AddDamageFormProps {
 const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, onLoginRequest }) => {
   const [playerName, setPlayerName] = useState('');
   const [guild, setGuild] = useState<'Principal' | 'Secundario'>('Principal');
-  const [damageValue, setDamageValue] = useState('');
+  const [totalDamage, setTotalDamage] = useState('');
+  const [ticketDamage, setTicketDamage] = useState('');
+  const [isFirstEntry, setIsFirstEntry] = useState(true);
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const compressImage = (base64: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        // Reducimos a 1280px para que la IA lea bien pero no pese tanto
-        const MAX_WIDTH = 1280;
-        let width = img.width;
-        let height = img.height;
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-    });
-  };
+  useEffect(() => {
+    const checkUserHistory = async () => {
+      if (!currentUser) return;
+      const history = await getRecords();
+      const hasRecords = history.some(r => r.discordUser?.id === currentUser.id);
+      setIsFirstEntry(!hasRecords);
+    };
+    checkUserHistory();
+  }, [currentUser]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage("Procesando imagen...");
+    setStatusMessage("Leyendo captura...");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const originalBase64 = reader.result as string;
-      const compressed = await compressImage(originalBase64);
-      setPreviewUrl(compressed);
-      
+      const base64 = reader.result as string;
+      setPreviewUrl(base64);
       try {
-        setStatusMessage("🤖 IA analizando captura...");
-        const result = await analyzeDamageScreenshot(compressed);
-        
+        const result = await analyzeDamageScreenshot(base64);
         if (result.playerName) setPlayerName(result.playerName);
-        if (result.damageValue) setDamageValue(result.damageValue.toString());
-        
-        setStatusMessage("✓ ¡Datos leídos con éxito!");
-        setTimeout(() => setStatusMessage(null), 3000);
-      } catch (err: any) {
-        console.error(err);
-        setStatusMessage("⚠️ No pude leer los datos. Por favor, rellena los campos a mano.");
-      } finally { 
-        setIsAnalyzing(false); 
-      }
+        if (result.totalDamage) setTotalDamage(result.totalDamage.toString());
+        if (result.ticketDamage) setTicketDamage(result.ticketDamage.toString());
+        setStatusMessage("✓ ¡Datos extraídos!");
+      } catch (err) {
+        setStatusMessage("⚠️ Error IA. Completa manualmente.");
+      } finally { setIsAnalyzing(false); }
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName || !damageValue) return alert("Faltan datos");
-
-    const val = parseInt(damageValue.toString().replace(/[^0-9]/g, ''));
-    if (isNaN(val)) return alert("El daño debe ser un número");
+    if (!playerName || !ticketDamage || (isFirstEntry && !totalDamage)) return alert("Faltan datos");
 
     setIsSaving(true);
-    setStatusMessage("Guardando en base de datos...");
     try {
-      const record = { 
-        playerName, 
-        guild, 
-        damageValue: val, 
-        screenshotUrl: previewUrl || undefined, 
-        discordUser: currentUser || undefined 
+      const record = {
+        playerName,
+        guild,
+        recordType: (isFirstEntry ? 'INITIAL' : 'INCREMENTAL') as RecordType,
+        totalDamage: parseInt(totalDamage.toString().replace(/\D/g, '') || '0'),
+        ticketDamage: parseInt(ticketDamage.toString().replace(/\D/g, '') || '0'),
+        screenshotUrl: previewUrl || undefined,
+        discordUser: currentUser!
       };
 
       await saveRecord(record);
-
-      const webhook = localStorage.getItem('lamu_discord_webhook');
-      if (webhook) {
-        await sendDamageToDiscord(webhook, { ...record, discordUser: currentUser! });
-      }
       onSuccess();
-    } catch (e: any) {
-      alert("Error al guardar: " + (e.message || "Error desconocido"));
-      setStatusMessage(null);
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (err) {
+      alert("Error al guardar");
+    } finally { setIsSaving(false); }
   };
 
   if (!currentUser) {
     return (
-      <div className="max-w-xl mx-auto py-20 text-center bg-slate-900 border border-slate-800 rounded-[2.5rem] p-12">
-        <h2 className="text-2xl font-black text-white mb-4 uppercase italic">Identificación Requerida</h2>
-        <p className="text-slate-400 mb-10">Conecta tu cuenta de Discord para poder reportar daños al gremio.</p>
-        <button onClick={onLoginRequest} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs transition-all shadow-xl">🛰️ Login con Discord</button>
+      <div className="max-w-xl mx-auto py-20 text-center bg-slate-900 rounded-[3rem] p-12 border border-slate-800">
+        <h2 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Identificación Necesaria</h2>
+        <button onClick={onLoginRequest} className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20">Identificarse con Discord</button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 pb-24 animate-in fade-in duration-500">
-      <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+    <div className="max-w-xl mx-auto pb-20 animate-in fade-in duration-700">
+      <div className="bg-slate-900 rounded-[3rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
         
-        {(isAnalyzing || isSaving) && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40 flex flex-col items-center justify-center space-y-6">
-            <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
-            <p className="text-cyan-400 font-black text-xs uppercase tracking-[0.2em] animate-pulse">
-              {isAnalyzing ? 'La IA está leyendo...' : 'Sincronizando...'}
-            </p>
+        {isFirstEntry ? (
+          <div className="mb-8 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-center">
+            <p className="text-indigo-300 font-black text-[10px] uppercase tracking-[0.2em]">⚡ PRIMER REPORTE DETECTADO</p>
+            <p className="text-slate-500 text-[9px] mt-1">Este reporte establecerá tu daño base en el ranking.</p>
+          </div>
+        ) : (
+          <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
+            <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em]">📈 SUMANDO TICKET</p>
+            <p className="text-slate-500 text-[9px] mt-1">Solo se sumará el daño de la batalla actual a tu total.</p>
           </div>
         )}
 
-        <div 
-          onClick={() => !isAnalyzing && fileInputRef.current?.click()} 
-          className={`border-2 border-dashed rounded-3xl p-4 text-center cursor-pointer transition-all mb-8 group overflow-hidden ${
-            previewUrl ? 'border-indigo-500/30' : 'border-slate-800 hover:border-indigo-500/50 py-12'
-          }`}
-        >
+        <div onClick={() => !isAnalyzing && fileInputRef.current?.click()} className="mb-8 cursor-pointer group">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
           {previewUrl ? (
-            <div className="relative">
-              <img src={previewUrl} className="max-h-64 mx-auto rounded-2xl shadow-xl" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                <span className="text-white font-black text-[10px] uppercase bg-slate-900/80 px-4 py-2 rounded-full">Cambiar Captura</span>
-              </div>
-            </div>
+            <img src={previewUrl} className="max-h-64 mx-auto rounded-3xl border-2 border-slate-800 group-hover:border-indigo-500/50 transition-all" />
           ) : (
-            <div className="space-y-3">
-              <div className="text-5xl">📸</div>
-              <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Sube tu captura</p>
-              <p className="text-slate-600 text-[8px] uppercase font-bold">Pantalla de Daño Personal de Skullgirls</p>
+            <div className="border-2 border-dashed border-slate-800 rounded-3xl py-12 text-center group-hover:border-indigo-500/50 transition-all">
+              <span className="text-4xl">📸</span>
+              <p className="text-slate-500 font-black text-[10px] uppercase mt-4 tracking-widest">Sube tu captura de batalla</p>
             </div>
           )}
         </div>
 
-        {statusMessage && (
-          <div className="mb-8 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-center">
-            <p className="text-indigo-300 font-bold text-[9px] uppercase tracking-wider">{statusMessage}</p>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-3">
-            <button 
-              type="button" 
-              onClick={() => setGuild('Principal')} 
-              className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Principal' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
-            >
-              Lamu Principal
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setGuild('Secundario')} 
-              className={`py-4 rounded-2xl font-black text-[10px] uppercase transition-all ${guild === 'Secundario' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-950 text-slate-600 border border-slate-800'}`}
-            >
-              Lamu Secundario
-            </button>
-          </div>
-
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Guerrero</label>
-            <input 
-              type="text" 
-              value={playerName} 
-              onChange={(e) => setPlayerName(e.target.value)} 
-              placeholder="Detectando..." 
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black outline-none focus:border-indigo-500 transition-colors" 
-            />
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Nombre del Guerrero</label>
+            <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black" />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-4 tracking-widest">Daño Personal</label>
-            <input 
-              type="text" 
-              value={damageValue} 
-              onChange={(e) => setDamageValue(e.target.value)} 
-              placeholder="000.000.000" 
-              className="w-full bg-slate-950 border border-slate-800 rounded-3xl px-6 py-6 font-mono text-3xl font-black text-cyan-400 outline-none focus:border-cyan-500 transition-colors placeholder:text-slate-800 text-center" 
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Total (Base)</label>
+              <input 
+                type="text" 
+                value={totalDamage} 
+                onChange={e => setTotalDamage(e.target.value)} 
+                disabled={!isFirstEntry}
+                placeholder="---"
+                className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg ${isFirstEntry ? 'text-white' : 'text-slate-700'}`} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Ticket</label>
+              <input 
+                type="text" 
+                value={ticketDamage} 
+                onChange={e => setTicketDamage(e.target.value)} 
+                placeholder="0"
+                className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-4 text-cyan-400 font-mono font-black text-lg" 
+              />
+            </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={isAnalyzing || isSaving} 
-            className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-black py-6 rounded-2xl uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 disabled:opacity-50 shadow-xl"
-          >
-            {isSaving ? 'ENVIANDO...' : 'CONFIRMAR REPORTE'}
+          <button disabled={isAnalyzing || isSaving} className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 py-6 rounded-2xl text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+            {isSaving ? 'GUARDANDO...' : 'CONFIRMAR REPORTE'}
           </button>
         </form>
       </div>
