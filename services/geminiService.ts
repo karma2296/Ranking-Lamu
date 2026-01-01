@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 const MODEL_NAME = 'gemini-3-pro-preview';
@@ -8,27 +7,22 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{
   totalDamage?: number; 
   ticketDamage?: number 
 }> => {
-  // Obtenemos la API Key del entorno inyectado por Vite
-  const apiKey = process.env.API_KEY;
+  // Inicialización directa según estándares de seguridad
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  if (!apiKey) {
-    throw new Error("API_KEY no configurada en el entorno");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
   const prompt = `Analiza los resultados de batalla de Skullgirls Mobile.
   Busca y extrae con extrema precisión:
   
   1. NOMBRE: Esquina superior izquierda (ignora el nivel NV. XX).
-  2. TOTAL DAMAGE: Busca "TOTAL PERSONAL DAMAGE" o el número más grande acumulado (ej: 349.632.248).
-  3. TICKET DAMAGE: Busca el daño específico de esta batalla, suele estar resaltado tras la pelea (ej: 15.200.000).
+  2. TOTAL DAMAGE: Busca "TOTAL PERSONAL DAMAGE" o el número más grande acumulado.
+  3. TICKET DAMAGE: Busca el daño específico de esta batalla.
   
   Devuelve un JSON con:
   - playerName (string)
-  - totalDamage (integer, sin puntos ni comas)
-  - ticketDamage (integer, sin puntos ni comas)
+  - totalDamage (integer)
+  - ticketDamage (integer)
   `;
 
   try {
