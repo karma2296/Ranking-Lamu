@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     "target": "ESNext",
@@ -15,6 +16,12 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "index.tsx",
+    "App.tsx",
+    "types.ts",
+    "services/**/*.ts",
+    "components/**/*.tsx"
+  ],
   "exclude": ["node_modules", "dist", "api"]
 }

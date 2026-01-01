@@ -1,18 +1,13 @@
 // @ts-nocheck
-/**
- * ARCHIVO DE SINCRONIZACIÓN DE ROLES - LAMU
- * Este archivo se ejecuta automáticamente cada hora.
- */
+export const config = {
+  maxDuration: 60,
+};
 
 export default async function handler(req, res) {
-  // 1. Verificación de Seguridad
-  const authHeader = req.headers['authorization'];
   const cronSecret = process.env.CRON_SECRET;
-  
-  // En producción, protegemos la URL para que solo Vercel pueda llamarla
   if (process.env.NODE_ENV === 'production' && cronSecret) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return res.status(401).json({ error: 'Acceso denegado' });
+    if (req.headers['authorization'] !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: 'No autorizado' });
     }
   }
 
@@ -20,24 +15,18 @@ export default async function handler(req, res) {
     const { SUPABASE_URL, SUPABASE_KEY, DISCORD_BOT_TOKEN, GUILD_ID, ROLE_THRESHOLDS } = process.env;
     
     if (!SUPABASE_URL || !SUPABASE_KEY || !DISCORD_BOT_TOKEN || !GUILD_ID) {
-      return res.status(500).json({ error: "Faltan variables en Vercel Settings" });
+      throw new Error("Variables de entorno faltantes en Vercel");
     }
 
-    // Configuración de rangos (ordenados de mayor a menor)
     const thresholds = JSON.parse(ROLE_THRESHOLDS || '[]').sort((a, b) => b.min - a.min);
 
-    // 2. Obtener datos de daño desde Supabase
     const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/damage_records?select=*`, {
-      headers: { 
-        'apikey': SUPABASE_KEY, 
-        'Authorization': `Bearer ${SUPABASE_KEY}` 
-      }
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     
-    if (!dbRes.ok) throw new Error("Error conectando a Supabase");
+    if (!dbRes.ok) throw new Error("Fallo al conectar con Supabase");
     const records = await dbRes.json();
 
-    // 3. Calcular daño real por cada usuario
     const statsMap = new Map();
     const userIds = [...new Set(records.map(r => r.discord_id).filter(Boolean))];
 
@@ -55,13 +44,10 @@ export default async function handler(req, res) {
       statsMap.set(uid, initialTotal + incrementalSum);
     });
 
-    // 4. Sincronizar con Discord
-    const log = [];
     for (const [discordId, totalDamage] of statsMap.entries()) {
       const targetRole = thresholds.find(t => totalDamage >= t.min);
       const allRoleIds = thresholds.map(t => t.id);
 
-      // Obtener datos del miembro en el servidor
       const memberRes = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordId}`, {
         headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
       });
@@ -70,31 +56,24 @@ export default async function handler(req, res) {
         const memberData = await memberRes.json();
         const currentRoles = memberData.roles || [];
 
-        // ASIGNAR ROL NUEVO (si corresponde y no lo tiene)
         if (targetRole && !currentRoles.includes(targetRole.id)) {
           await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordId}/roles/${targetRole.id}`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
+            method: 'PUT', headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
           });
         }
 
-        // QUITAR ROLES ANTIGUOS
         for (const roleId of allRoleIds) {
           if ((!targetRole || roleId !== targetRole.id) && currentRoles.includes(roleId)) {
             await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordId}/roles/${roleId}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
+              method: 'DELETE', headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
             });
           }
         }
-        log.push({ user: discordId, dmg: totalDamage });
       }
     }
 
-    return res.status(200).json({ success: true, processed: log.length });
-
+    return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error en el bot:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
