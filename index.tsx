@@ -1,85 +1,15 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lamu - Ranking de Daño</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #020617;
-      color: #f8fafc;
-      overflow-x: hidden;
-      position: relative;
-    }
-/* Fondo de partículas festivas */
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.05) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: -1;
-    }
-/* Animación de confeti */
-    @keyframes snowfall {
-      0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-    }
-
-    .particle {
-      position: fixed;
-      top: -10px;
-      pointer-events: none;
-      animation: snowfall linear infinite;
-      z-index: 100;
-    }
-
-    .golden-text {
-      background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
-    }
-  </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "vite": "https://esm.sh/vite@^7.3.0"
-  }
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
 }
-</script>
-</head>
-<body>
-  <script>
-    for(let i = 0; i < 30; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      const isGold = Math.random() > 0.5;
-      p.style.left = Math.random() * 100 + 'vw';
-      p.style.width = Math.random() * 6 + 2 + 'px';
-      p.style.height = p.style.width;
-      p.style.backgroundColor = isGold ? '#fbbf24' : '#e2e8f0';
-      p.style.borderRadius = '50%';
-      p.style.opacity = Math.random();
-      p.style.animationDuration = (Math.random() * 10 + 5) + 's';
-      p.style.animationDelay = (Math.random() * 5) + 's';
-      document.body.appendChild(p);
-    }
-  </script>
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
-</html>
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

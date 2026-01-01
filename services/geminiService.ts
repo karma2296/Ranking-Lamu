@@ -7,7 +7,7 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{
   totalDamage?: number; 
   ticketDamage?: number 
 }> => {
-  // Inicialización directa según estándares de seguridad
+  // Inicialización correcta
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
@@ -15,15 +15,11 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{
   const prompt = `Analiza los resultados de batalla de Skullgirls Mobile.
   Busca y extrae con extrema precisión:
   
-  1. NOMBRE: Esquina superior izquierda (ignora el nivel NV. XX).
-  2. TOTAL DAMAGE: Busca "TOTAL PERSONAL DAMAGE" o el número más grande acumulado.
+  1. NOMBRE: Esquina superior izquierda.
+  2. TOTAL DAMAGE: Busca "TOTAL PERSONAL DAMAGE".
   3. TICKET DAMAGE: Busca el daño específico de esta batalla.
   
-  Devuelve un JSON con:
-  - playerName (string)
-  - totalDamage (integer)
-  - ticketDamage (integer)
-  `;
+  Devuelve un JSON con: playerName (string), totalDamage (integer), ticketDamage (integer).`;
 
   try {
     const response = await ai.models.generateContent({
