@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -11,7 +10,10 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: 'index.html',
-    },
+      input: 'index.html'
+    }
   },
+  server: {
+    port: 3000
+  }
 });
