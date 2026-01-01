@@ -14,7 +14,7 @@
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCases" : false
   },
   "include": [
     "index.tsx",
@@ -23,5 +23,5 @@
     "services/**/*.ts",
     "components/**/*.tsx"
   ],
-  "exclude": ["node_modules", "dist", "api"]
+  "exclude": ["node_modules", "dist", "api", "api/**/*.ts"]
 }

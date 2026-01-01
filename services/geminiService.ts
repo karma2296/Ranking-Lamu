@@ -8,7 +8,14 @@ export const analyzeDamageScreenshot = async (base64Image: string): Promise<{
   totalDamage?: number; 
   ticketDamage?: number 
 }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Obtenemos la API Key del entorno inyectado por Vite
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("API_KEY no configurada en el entorno");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
   const prompt = `Analiza los resultados de batalla de Skullgirls Mobile.

@@ -29,7 +29,7 @@
       z-index: -1;
     }
 
-    /* Animación de confeti cayendo */
+    /* Animación de confeti */
     @keyframes snowfall {
       0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
       10% { opacity: 1; }
@@ -45,17 +45,11 @@
       z-index: 100;
     }
 
-    /* Efecto de texto dorado brillante */
     .golden-text {
       background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
-    }
-
-    .festive-border {
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      box-shadow: 0 0 20px rgba(251, 191, 36, 0.1);
     }
   </style>
 <script type="importmap">
@@ -69,10 +63,8 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
-  <!-- Partículas inyectadas por script para no saturar el HTML -->
   <script>
     for(let i = 0; i < 30; i++) {
       const p = document.createElement('div');
