@@ -233,7 +233,7 @@ const App: React.FC = () => {
                       Identificar Admin
                     </button>
                   </div>
-                ) : <Settings onReset={refreshData} />
+                ) : <Settings stats={stats} onReset={refreshData} />
               )}
             </div>
           )}

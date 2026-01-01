@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { AppSettings } from '../types';
-import { clearAllData } from '../services/dbService';
 
-const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
+import React, { useState, useEffect } from 'react';
+import { AppSettings, PlayerStats } from '../types';
+import { clearAllData, updateInitialDamage } from '../services/dbService';
+
+interface SettingsProps {
+  stats?: PlayerStats[];
+  onReset?: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
   const [settings, setSettings] = useState<AppSettings>({
     discordWebhook: '', 
     supabaseUrl: '', 
@@ -14,6 +20,11 @@ const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
   const [saved, setSaved] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Estados para corrección de daño
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [newBaseDamage, setNewBaseDamage] = useState('');
+  const [isUpdatingDamage, setIsUpdatingDamage] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem('lamu_settings');
@@ -43,6 +54,24 @@ const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
     }
   };
 
+  const handleUpdateDamage = async () => {
+    if (!selectedPlayerId || !newBaseDamage) return alert("Selecciona un jugador e ingresa el nuevo daño base.");
+    
+    setIsUpdatingDamage(true);
+    try {
+      const damage = parseInt(newBaseDamage.replace(/\D/g, ''));
+      await updateInitialDamage(selectedPlayerId, damage);
+      alert("✓ Daño base actualizado correctamente.");
+      setSelectedPlayerId('');
+      setNewBaseDamage('');
+      if (onReset) onReset();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsUpdatingDamage(false);
+    }
+  };
+
   const generateMaestroLink = () => {
     const configString = JSON.stringify(settings);
     const encoded = btoa(configString);
@@ -68,6 +97,52 @@ const Settings: React.FC<{ onReset?: () => void }> = ({ onReset }) => {
           }`}
         >
           {copiedLink ? '✓ LINK COPIADO AL PORTAPAPELES' : 'GENERAR LINK MAESTRO'}
+        </button>
+      </div>
+
+      {/* GESTIÓN DE GUERREROS (NUEVA SECCIÓN) */}
+      <div className="bg-slate-900 border border-amber-500/20 rounded-[2.5rem] p-10 space-y-8 shadow-xl">
+        <div>
+          <h3 className="text-xl font-black text-amber-400 uppercase tracking-tighter flex items-center gap-3">
+            <span>🛡️</span> Gestión de Guerreros
+          </h3>
+          <p className="text-slate-500 text-xs mt-1">Corrige el Daño Base (INITIAL) de un usuario si hubo errores u olvidos.</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Seleccionar Guerrero</label>
+            <select 
+              value={selectedPlayerId} 
+              onChange={e => setSelectedPlayerId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white appearance-none cursor-pointer focus:border-amber-500/50 outline-none"
+            >
+              <option value="">Elegir de la lista...</option>
+              {stats.map(p => (
+                <option key={p.discordUser?.id} value={p.discordUser?.id}>
+                  {p.playerName} ({p.guild})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Nuevo Daño Base (INITIAL)</label>
+            <input 
+              type="text" 
+              value={newBaseDamage} 
+              onChange={e => setNewBaseDamage(e.target.value)}
+              placeholder="Ej: 450000000"
+              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-amber-400 font-mono font-black placeholder:text-slate-800 focus:border-amber-500/50 outline-none"
+            />
+          </div>
+        </div>
+
+        <button 
+          onClick={handleUpdateDamage}
+          disabled={isUpdatingDamage || !selectedPlayerId}
+          className="w-full bg-amber-600 hover:bg-amber-500 text-slate-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl disabled:opacity-20"
+        >
+          {isUpdatingDamage ? 'Sincronizando...' : 'CORREGIR DAÑO BASE'}
         </button>
       </div>
 

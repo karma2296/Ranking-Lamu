@@ -163,6 +163,34 @@ export const deleteRecord = async (id: string) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
 };
 
+export const updateInitialDamage = async (discordId: string, newBaseDamage: number) => {
+  const config = getSupabaseConfig();
+  if (!config?.supabaseUrl || !config?.supabaseKey) throw new Error("Cloud not connected");
+
+  // Buscar el registro inicial para este usuario
+  const fetchRes = await fetch(
+    `${config.supabaseUrl}/rest/v1/damage_records?discord_id=eq.${discordId}&record_type=eq.INITIAL&select=id`,
+    { headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` } }
+  );
+  
+  const records = await fetchRes.json();
+  if (!records.length) throw new Error("No se encontró registro INICIAL para este usuario");
+
+  const recordId = records[0].id;
+
+  const updateRes = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=eq.${recordId}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': config.supabaseKey,
+      'Authorization': `Bearer ${config.supabaseKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ total_damage: newBaseDamage })
+  });
+
+  if (!updateRes.ok) throw new Error("Error al actualizar el daño base");
+};
+
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
   const records = await getRankingRecords();
   const statsMap = new Map<string, PlayerStats>();
