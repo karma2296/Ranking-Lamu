@@ -178,6 +178,8 @@ export const updateInitialDamage = async (discordId: string, newBaseDamage: numb
 
   const recordId = records[0].id;
 
+  // Actualizamos el daño y el timestamp para que los tickets anteriores dejen de sumarse.
+  // getPlayerStats suma tickets cuyo timestamp > initial.timestamp
   const updateRes = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=eq.${recordId}`, {
     method: 'PATCH',
     headers: {
@@ -185,7 +187,10 @@ export const updateInitialDamage = async (discordId: string, newBaseDamage: numb
       'Authorization': `Bearer ${config.supabaseKey}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ total_damage: newBaseDamage })
+    body: JSON.stringify({ 
+      total_damage: newBaseDamage,
+      timestamp: Date.now() 
+    })
   });
 
   if (!updateRes.ok) throw new Error("Error al actualizar el daño base");
@@ -206,6 +211,9 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
     const initial = userRecords.find(r => r.recordType === 'INITIAL') || userRecords[0];
     const initialTotal = initial.totalDamage || 0;
     
+    // Solo sumamos tickets que hayan ocurrido DESPUÉS del registro inicial actual.
+    // Al actualizar el daño base en Settings, movemos el timestamp del INITIAL a "ahora",
+    // por lo que los tickets antiguos dejarán de sumarse automáticamente.
     const incrementalTickets = userRecords.filter(r => r.timestamp > initial.timestamp);
     const totalTicketsSum = incrementalTickets.reduce((acc, r) => acc + (r.ticketDamage || 0), 0);
     
