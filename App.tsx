@@ -108,6 +108,20 @@ const App: React.FC = () => {
       <main className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto pb-32 md:pb-12">
         <div className="max-w-6xl mx-auto space-y-8">
           
+          {/* BANNER FESTIVO 2026 */}
+          {activeView === ViewMode.DASHBOARD && (
+            <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-amber-500/30 rounded-[3rem] p-10 text-center shadow-[0_0_40px_rgba(251,191,36,0.1)] group">
+              <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none"></div>
+              <div className="relative z-10">
+                <span className="text-4xl block mb-2 animate-bounce">🎇</span>
+                <h2 className="text-5xl md:text-6xl font-black golden-text uppercase tracking-tighter leading-none mb-2">¡Feliz 2026!</h2>
+                <p className="text-amber-500/60 font-black text-[10px] uppercase tracking-[0.4em]">Temporada de Festejos • Gremio Lamu</p>
+              </div>
+              <div className="absolute -bottom-10 -right-10 text-8xl opacity-10 group-hover:rotate-12 transition-transform">🥂</div>
+              <div className="absolute -top-10 -left-10 text-8xl opacity-10 group-hover:-rotate-12 transition-transform">🎉</div>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/50 pb-8">
             <div>
               <h1 className="text-3xl font-black text-white tracking-tighter">Ranking Lamu</h1>
@@ -127,19 +141,10 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {!isLoading && cloudStatus === 'local' && activeView !== ViewMode.SETTINGS && (
-            <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] flex items-center gap-4 animate-bounce">
-              <span className="text-2xl">⚠️</span>
-              <div>
-                <p className="text-amber-200 text-xs font-black uppercase">App no configurada</p>
-                <p className="text-amber-500/70 text-[10px]">Pide el Link Maestro a tu líder o configura Supabase en Ajustes.</p>
-              </div>
-            </div>
-          )}
-
           {isLoading ? (
             <div className="h-64 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+              <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-widest">Cargando ambiente festivo...</p>
             </div>
           ) : (
             <div className="animate-in fade-in duration-500">
@@ -158,16 +163,16 @@ const App: React.FC = () => {
                   {history.length > 0 ? (
                     <div className="space-y-4">
                       {isAdminAuthenticated && (
-                        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 px-4">
-                          MODO ADMINISTRADOR: Puedes eliminar registros erróneos.
+                        <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-2 px-4">
+                          MODO ADMINISTRADOR: Gestión de registros festivos activa.
                         </p>
                       )}
                       {history.map(r => (
-                        <div key={r.id} className="bg-slate-900/50 p-5 rounded-3xl flex items-center justify-between border border-slate-800/50 group">
+                        <div key={r.id} className="bg-slate-900/50 p-5 rounded-3xl flex items-center justify-between border border-slate-800/50 group hover:border-amber-500/20 transition-all">
                           <div className="flex items-center gap-4">
                             <div className="relative">
                               <img src={r.screenshotUrl || 'https://via.placeholder.com/100'} className="w-14 h-14 rounded-xl object-cover border border-slate-800" />
-                              <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded text-[8px] font-black uppercase ${r.recordType === 'INITIAL' ? 'bg-indigo-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                              <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded text-[8px] font-black uppercase ${r.recordType === 'INITIAL' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'bg-emerald-600 text-white'}`}>
                                 {r.recordType === 'INITIAL' ? 'INI' : 'TKT'}
                               </span>
                             </div>
@@ -180,7 +185,7 @@ const App: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-6">
                             <div className="text-right">
-                              <span className="block font-mono font-black text-emerald-400 text-lg leading-none">{r.ticketDamage.toLocaleString()}</span>
+                              <span className="block font-mono font-black text-amber-400 text-lg leading-none">{r.ticketDamage.toLocaleString()}</span>
                               <span className="text-[8px] text-slate-600 font-black uppercase tracking-tighter">Daño Ticket</span>
                             </div>
                             
@@ -198,21 +203,21 @@ const App: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="py-20 text-center text-slate-600 font-black uppercase text-[10px] tracking-widest">Historial vacío</div>
+                    <div className="py-20 text-center text-slate-600 font-black uppercase text-[10px] tracking-widest">Sin registros este año</div>
                   )}
                 </div>
               )}
               
               {activeView === ViewMode.SETTINGS && (
                 !isAdminAuthenticated ? (
-                  <div className="max-w-md mx-auto mt-10 p-10 bg-slate-900 border border-slate-800 rounded-[3rem] text-center space-y-6">
+                  <div className="max-w-md mx-auto mt-10 p-10 bg-slate-900 border border-amber-500/20 rounded-[3rem] text-center space-y-6">
                     <h2 className="text-xl font-black text-white uppercase">Acceso Admin</h2>
                     <input 
                       type="password" 
                       value={adminPasswordInput} 
                       onChange={(e) => setAdminPasswordInput(e.target.value)} 
                       placeholder="Contraseña" 
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white outline-none focus:border-indigo-500/50 transition-all" 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white outline-none focus:border-amber-500/50 transition-all" 
                     />
                     <button 
                       onClick={() => { 
@@ -223,7 +228,7 @@ const App: React.FC = () => {
                           alert("Contraseña incorrecta");
                         }
                       }} 
-                      className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-600/20"
+                      className="w-full bg-amber-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-amber-600/20 hover:bg-amber-500 transition-colors"
                     >
                       Identificar Admin
                     </button>
