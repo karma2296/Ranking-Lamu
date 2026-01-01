@@ -15,8 +15,7 @@
       overflow-x: hidden;
       position: relative;
     }
-
-    /* Fondo de partículas festivas */
+/* Fondo de partículas festivas */
     body::before {
       content: "";
       position: fixed;
@@ -28,8 +27,7 @@
       pointer-events: none;
       z-index: -1;
     }
-
-    /* Animación de confeti */
+/* Animación de confeti */
     @keyframes snowfall {
       0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
       10% { opacity: 1; }
