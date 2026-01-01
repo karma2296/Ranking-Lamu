@@ -1,9 +1,0 @@
-
-{
-  "crons": [
-    {
-      "path": "/api/sync-roles",
-      "schedule": "0 * * * *"
-    }
-  ]
-}
