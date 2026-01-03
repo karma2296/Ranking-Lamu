@@ -12,8 +12,8 @@ export interface DamageRecord {
   playerName: string;
   guild: 'Principal' | 'Secundario';
   recordType: RecordType;
-  totalDamage: number; // El total que aparece en pantalla
-  ticketDamage: number; // El daño de la batalla individual
+  totalDamage: number;
+  ticketDamage: number;
   timestamp: number;
   screenshotUrl?: string;
   discordUser?: DiscordUser;
@@ -22,17 +22,17 @@ export interface DamageRecord {
 export interface PlayerStats {
   playerName: string;
   guild: 'Principal' | 'Secundario';
-  accumulatedTotal: number; // Suma lógica: Inicial + Incrementales
-  maxDailyTicket: number; // El ticket más alto hoy
+  accumulatedTotal: number;
+  maxDailyTicket: number;
   totalEntries: number;
   lastUpdated: number;
   discordUser?: DiscordUser;
-  topTickets: number[]; // Las 5 mejores marcas individuales
+  topTickets: number[];
 }
 
 export interface AppSettings {
   discordWebhook: string;
-  discordRankingWebhook: string; // Nuevo campo para canal de ranking
+  discordRankingWebhook: string; // Canal exclusivo para el Ranking
   supabaseUrl: string;
   supabaseKey: string;
   guildName: string;

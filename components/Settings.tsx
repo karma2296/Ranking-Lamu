@@ -22,19 +22,15 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Estados para corrección de daño
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
-  const [newBaseDamage, setNewBaseDamage] = useState('');
-  const [isUpdatingDamage, setIsUpdatingDamage] = useState(false);
-
   useEffect(() => {
     const s = localStorage.getItem('lamu_settings');
     if (s) {
-      const parsed = JSON.parse(s);
-      setSettings({
-        ...settings,
-        ...parsed
-      });
+      try {
+        const parsed = JSON.parse(s);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error("Error cargando settings", e);
+      }
     }
   }, []);
 
@@ -45,179 +41,75 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleResetRanking = async () => {
-    const confirm = window.confirm("⚠️ ¿ESTÁS SEGURO? Esto borrará permanentemente TODOS los registros de daño y reiniciará el ranking de la temporada.");
-    if (!confirm) return;
-
-    setIsDeleting(true);
-    try {
-      await clearAllData();
-      alert("Ranking reiniciado con éxito.");
-      if (onReset) onReset();
-    } catch (e) {
-      alert("Error al borrar datos.");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleUpdateDamage = async () => {
-    if (!selectedPlayerId || !newBaseDamage) return alert("Selecciona un jugador e ingresa el nuevo daño base.");
-    
-    setIsUpdatingDamage(true);
-    try {
-      const damage = parseInt(newBaseDamage.replace(/\D/g, ''));
-      await updateInitialDamage(selectedPlayerId, damage);
-      alert("✓ Daño base actualizado correctamente.");
-      setSelectedPlayerId('');
-      setNewBaseDamage('');
-      if (onReset) onReset();
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setIsUpdatingDamage(false);
-    }
-  };
-
   const generateMaestroLink = () => {
-    const configString = JSON.stringify(settings);
-    const encoded = btoa(configString);
-    const fullUrl = `${window.location.origin}${window.location.pathname}?setup=${encoded}`;
-    navigator.clipboard.writeText(fullUrl);
+    const encoded = btoa(JSON.stringify(settings));
+    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?setup=${encoded}`);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-3xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
       
-      {/* SECCIÓN COMPARTIR */}
-      <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-500/30 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-8 opacity-10 text-6xl group-hover:scale-110 transition-transform">🚀</div>
-        <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Compartir Gremio</h3>
-        <p className="text-slate-400 text-sm mb-8 max-w-md">Enlace para que otros miembros se configuren automáticamente.</p>
+      {/* SECCIÓN DE ENLACE MAESTRO */}
+      <div className="bg-slate-900 border border-indigo-500/30 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
+        <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Configuración Maestra</h3>
+        <p className="text-slate-400 text-xs mb-6">Genera un link para configurar otros dispositivos al instante.</p>
+        <button onClick={generateMaestroLink} className={`px-8 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all active:scale-95 ${copiedLink ? 'bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-500'}`}>
+          {copiedLink ? '✓ ENLACE COPIADO' : 'COPIAR LINK MAESTRO'}
+        </button>
+      </div>
+
+      {/* CONFIGURACIÓN DE DATOS (SUPABASE Y DISCORD) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 space-y-8 shadow-xl">
+        <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+          Terminal de Control de Datos
+        </h4>
         
-        <button 
-          onClick={generateMaestroLink}
-          className={`flex items-center gap-3 px-8 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all active:scale-95 ${
-            copiedLink ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/20'
-          }`}
-        >
-          {copiedLink ? '✓ LINK COPIADO AL PORTAPAPELES' : 'GENERAR LINK MAESTRO'}
-        </button>
-      </div>
-
-      {/* GESTIÓN DE GUERREROS */}
-      <div className="bg-slate-900 border border-amber-500/20 rounded-[2.5rem] p-10 space-y-8 shadow-xl">
-        <div>
-          <h3 className="text-xl font-black text-amber-400 uppercase tracking-tighter flex items-center gap-3">
-            <span>🛡️</span> Gestión de Guerreros
-          </h3>
-          <p className="text-slate-500 text-xs mt-1">Corrige el Daño Base (INITIAL) de un usuario si hubo errores u olvidos.</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Seleccionar Guerrero</label>
-            <select 
-              value={selectedPlayerId} 
-              onChange={e => setSelectedPlayerId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white appearance-none cursor-pointer focus:border-amber-500/50 outline-none"
-            >
-              <option value="">Elegir de la lista...</option>
-              {stats.map(p => (
-                <option key={p.discordUser?.id} value={p.discordUser?.id}>
-                  {p.playerName} ({p.guild})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Nuevo Daño Base (INITIAL)</label>
-            <input 
-              type="text" 
-              value={newBaseDamage} 
-              onChange={e => setNewBaseDamage(e.target.value)}
-              placeholder="Ej: 450000000"
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-amber-400 font-mono font-black placeholder:text-slate-800 focus:border-amber-500/50 outline-none"
-            />
-          </div>
-        </div>
-
-        <button 
-          onClick={handleUpdateDamage}
-          disabled={isUpdatingDamage || !selectedPlayerId}
-          className="w-full bg-amber-600 hover:bg-amber-500 text-slate-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl disabled:opacity-20"
-        >
-          {isUpdatingDamage ? 'Sincronizando...' : 'CORREGIR DAÑO BASE'}
-        </button>
-      </div>
-
-      {/* CONFIGURACIÓN TÉCNICA */}
-      <div className="grid gap-6">
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4 text-emerald-500">Configuración de Canales y Datos</h4>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 space-y-6 backdrop-blur-sm">
-          
+        <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Discord Client ID</label>
-              <input type="text" value={settings.discordClientId} onChange={e => setSettings({...settings, discordClientId: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-sm" placeholder="ID de la App de Discord" />
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Supabase Project URL</label>
+              <input type="text" value={settings.supabaseUrl} onChange={e => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs focus:border-emerald-500/50 outline-none" placeholder="https://xyz.supabase.co" />
             </div>
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Contraseña Admin</label>
-              <input type="text" value={settings.adminPassword} onChange={e => setSettings({...settings, adminPassword: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-sm" />
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Supabase API Key (Anon)</label>
+              <input type="password" value={settings.supabaseKey} onChange={e => setSettings({...settings, supabaseKey: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs focus:border-emerald-500/50 outline-none" placeholder="eyJhbGci..." />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-emerald-600 uppercase ml-2">Webhook Registros (Tickets Individuales)</label>
-            <input type="text" value={settings.discordWebhook} onChange={e => setSettings({...settings, discordWebhook: e.target.value})} className="w-full bg-emerald-950/20 border border-emerald-900/30 rounded-2xl px-6 py-4 text-emerald-400 font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
-          </div>
+          <div className="space-y-4 border-t border-slate-800 pt-6">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-emerald-600 uppercase ml-2">Webhook: Registros de Daño (Canal 1)</label>
+              <input type="text" value={settings.discordWebhook} onChange={e => setSettings({...settings, discordWebhook: e.target.value})} className="w-full bg-emerald-950/20 border border-emerald-900/30 rounded-2xl px-6 py-4 text-emerald-400 font-mono text-xs focus:border-emerald-400/50 outline-none" placeholder="URL para tickets individuales" />
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-blue-500 uppercase ml-2">Webhook Ranking (Canal de Posiciones)</label>
-            <input type="text" value={settings.discordRankingWebhook} onChange={e => setSettings({...settings, discordRankingWebhook: e.target.value})} className="w-full bg-blue-950/20 border border-blue-900/30 rounded-2xl px-6 py-4 text-blue-400 font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-blue-500 uppercase ml-2">Webhook: Ranking Actualizado (Canal 2)</label>
+              <input type="text" value={settings.discordRankingWebhook} onChange={e => setSettings({...settings, discordRankingWebhook: e.target.value})} className="w-full bg-blue-950/20 border border-blue-900/30 rounded-2xl px-6 py-4 text-blue-400 font-mono text-xs focus:border-blue-400/50 outline-none" placeholder="URL para el Ranking Global" />
+            </div>
           </div>
-
-          <div className="space-y-2 pt-4 border-t border-slate-800">
-            <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Supabase URL</label>
-            <input type="text" value={settings.supabaseUrl} onChange={e => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs" />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Supabase Key</label>
-            <input type="password" value={settings.supabaseKey} onChange={e => setSettings({...settings, supabaseKey: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs" />
-          </div>
-
-          <button onClick={handleSave} className="w-full wind-gradient text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl hover:brightness-110 active:scale-95">
-            {saved ? '✓ CONFIGURACIÓN ACTUALIZADA' : 'GUARDAR CAMBIOS'}
-          </button>
         </div>
+
+        <button onClick={handleSave} className="w-full wind-gradient text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all hover:brightness-110 active:scale-95 shadow-xl">
+          {saved ? '✓ CONFIGURACIÓN SINCRONIZADA' : 'SINCRO CON LA NUBE'}
+        </button>
       </div>
 
-      {/* ZONA DE PELIGRO */}
-      <div className="bg-rose-950/20 border border-rose-500/20 rounded-[2.5rem] p-10 space-y-6">
-        <div className="flex items-center gap-4">
-          <span className="text-3xl">⚠️</span>
-          <div>
-            <h3 className="text-xl font-black text-rose-500 uppercase">Zona de Peligro</h3>
-            <p className="text-rose-500/60 text-xs">Acciones irreversibles para la gestión del gremio.</p>
-          </div>
-        </div>
-
-        <div className="bg-rose-500/5 p-6 rounded-3xl border border-rose-500/10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-1">
-            <p className="text-white font-bold text-sm">Reiniciar Temporada de Daño</p>
-            <p className="text-slate-500 text-[10px]">Borra todos los registros actuales de la tabla y limpia el ranking.</p>
-          </div>
-          <button 
-            onClick={handleResetRanking}
-            disabled={isDeleting}
-            className="w-full md:w-auto bg-rose-600 hover:bg-rose-500 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isDeleting ? 'BORRANDO...' : 'REINICIAR RANKING'}
-          </button>
-        </div>
+      {/* BOTÓN DE REINICIO PELIGROSO */}
+      <div className="bg-rose-950/10 border border-rose-500/20 rounded-[2.5rem] p-10 text-center">
+        <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest mb-4">¡CUIDADO! Esta acción no se puede deshacer.</p>
+        <button onClick={async () => {
+          if(confirm("¿Deseas BORRAR TODO el ranking de la temporada?")) { 
+            setIsDeleting(true);
+            await clearAllData(); 
+            onReset?.(); 
+            setIsDeleting(false);
+          }
+        }} className="bg-rose-600 hover:bg-rose-500 text-white px-12 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
+          {isDeleting ? 'BORRANDO...' : 'REINICIAR TEMPORADA'}
+        </button>
       </div>
     </div>
   );
