@@ -104,7 +104,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#020d06] text-emerald-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-transparent text-emerald-50">
       <Navigation 
         activeView={activeView} 
         onViewChange={setActiveView} 

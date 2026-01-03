@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" style="background-color: #020d06;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +9,27 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #020d06; /* Fondo verde obsidiana muy oscuro */
+      background-color: transparent;
       color: #ecfdf5;
       overflow-x: hidden;
       position: relative;
+      min-height: 100vh;
+    }
+
+    /* Imagen de fondo con mayor visibilidad */
+    #bg-artwork {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('https://static-platform.aghanim.com/news/af/2b/24/80/af2b2480-deb5-417e-8e30-74590a31e0f3.webp');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.25; /* Aumentado para mejor visibilidad */
+      z-index: -1;
+      pointer-events: none;
+      filter: contrast(120%) brightness(70%) saturate(80%);
     }
 
     /* Efecto de líneas de escaneo estilo Arcade con tinte esmeralda */
@@ -28,9 +45,10 @@
       background-size: 100% 3px, 3px 100%;
       pointer-events: none;
       z-index: 1000;
-      opacity: 0.5;
+      opacity: 0.4;
     }
 
+    /* Brillos radiales de viento */
     body::before {
       content: "";
       position: fixed;
@@ -38,8 +56,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 40%),
-                  radial-gradient(circle at 80% 70%, rgba(5, 150, 105, 0.08) 0%, transparent 40%);
+      background: radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 70%, rgba(5, 150, 105, 0.1) 0%, transparent 50%);
       pointer-events: none;
       z-index: -1;
     }
@@ -55,7 +73,8 @@
     }
     
     .wind-gradient {
-      background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #10b981 100%);
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(6, 95, 70, 0.8) 50%, rgba(16, 185, 129, 0.7) 100%);
+      backdrop-blur: 8px;
     }
   </style>
 <script type="importmap">
@@ -71,6 +90,7 @@
 </script>
 </head>
 <body>
+  <div id="bg-artwork"></div>
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
