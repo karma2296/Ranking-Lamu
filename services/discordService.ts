@@ -1,22 +1,28 @@
 
 import { DiscordUser, PlayerStats } from '../types';
 
-const getAppUrl = () => {
+/**
+ * Obtiene los ajustes actuales y valida la URL para el botón.
+ */
+const getDiscordConfig = () => {
   const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
-  let url = '';
   
+  let appUrl = '';
   if (s.customAppUrl && s.customAppUrl.trim() !== '') {
-    url = s.customAppUrl.trim();
+    appUrl = s.customAppUrl.trim();
   } else {
-    url = window.location.origin + window.location.pathname;
+    appUrl = window.location.origin + window.location.pathname;
   }
 
-  // Validación crítica: Discord rechaza botones si la URL no es absoluta y válida
-  if (!url.startsWith('http')) {
-    url = 'https://' + url;
+  // Discord requiere que la URL del botón sea absoluta y comience por http/https
+  if (appUrl && !appUrl.startsWith('http')) {
+    appUrl = 'https://' + appUrl;
   }
   
-  return url;
+  return {
+    appUrl,
+    clientId: s.discordClientId || null
+  };
 };
 
 export const sendDamageToDiscord = async (
@@ -25,7 +31,7 @@ export const sendDamageToDiscord = async (
 ) => {
   if (!webhookUrl) return;
 
-  const appUrl = getAppUrl();
+  const config = getDiscordConfig();
 
   const embed = {
     title: "⚔️ REPORTE DE ASALTO: LOCKED 'N' LOADED",
@@ -39,23 +45,32 @@ export const sendDamageToDiscord = async (
     timestamp: new Date().toISOString()
   };
 
-  const components = [
-    {
-      type: 1, 
-      components: [
-        {
-          type: 2, 
-          style: 5, 
-          label: "📜 Ver Historial Completo",
-          url: appUrl
-        }
-      ]
-    }
-  ];
+  const payload: any = {
+    embeds: [embed],
+    components: [
+      {
+        type: 1, 
+        components: [
+          {
+            type: 2, 
+            style: 5, 
+            label: "Ver Historial Completo",
+            url: config.appUrl
+          }
+        ]
+      }
+    ]
+  };
+
+  // Importante: El application_id es necesario para que aparezcan los botones
+  if (config.clientId) {
+    payload.application_id = config.clientId;
+  }
 
   try {
     const formData = new FormData();
-    formData.append('payload_json', JSON.stringify({ embeds: [embed], components }));
+    formData.append('payload_json', JSON.stringify(payload));
+    
     if (data.screenshotUrl) {
       const base64Data = data.screenshotUrl.split(',')[1];
       const binary = atob(base64Data);
@@ -63,14 +78,17 @@ export const sendDamageToDiscord = async (
       for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
       formData.append('file', new Blob([array], { type: 'image/png' }), 'damage.png');
     }
+
     await fetch(webhookUrl, { method: 'POST', body: formData });
-  } catch (error) { console.error("Error enviando reporte individual:", error); }
+  } catch (error) { 
+    console.error("Error enviando reporte individual:", error); 
+  }
 };
 
 export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStats[]) => {
   if (!webhookUrl || stats.length === 0) return;
 
-  const appUrl = getAppUrl();
+  const config = getDiscordConfig();
 
   let table = "```py\n";
   table += "POS | GUERRERO        | DAÑO ACUMULADO\n";
@@ -94,7 +112,7 @@ export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStat
     timestamp: new Date().toISOString()
   };
 
-  const payload = {
+  const payload: any = {
     embeds: [embed],
     components: [
       {
@@ -103,24 +121,31 @@ export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStat
           {
             type: 2,
             style: 5,
-            label: "⚔️ Registra tu daño",
-            url: appUrl
+            label: "Registra tu daño", // Etiqueta limpia sin emojis para máxima compatibilidad
+            url: config.appUrl
           }
         ]
       }
     ]
   };
 
+  // Necesario para botones en webhooks de aplicaciones
+  if (config.clientId) {
+    payload.application_id = config.clientId;
+  }
+
   try {
+    const formData = new FormData();
+    formData.append('payload_json', JSON.stringify(payload));
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: formData
     });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Respuesta error de Discord:", errorText);
+      console.error("Error en respuesta de Discord:", errorText);
     }
   } catch (error) { 
     console.error("Error crítico enviando ranking:", error); 
