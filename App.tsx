@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import RankingTable from './components/RankingTable';
@@ -105,7 +104,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-200">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#020d06] text-emerald-50">
       <Navigation 
         activeView={activeView} 
         onViewChange={setActiveView} 
@@ -118,33 +117,38 @@ const App: React.FC = () => {
         <div className="max-w-6xl mx-auto space-y-8">
           
           {activeView === ViewMode.DASHBOARD && (
-            <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-amber-500/30 rounded-[3rem] p-10 text-center shadow-[0_0_40px_rgba(251,191,36,0.1)] group">
+            <div className="relative overflow-hidden wind-gradient border-2 border-emerald-400/30 rounded-[2.5rem] p-12 text-center shadow-[0_0_60px_rgba(16,185,129,0.15)] group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent opacity-50"></div>
               <div className="relative z-10">
-                <span className="text-4xl block mb-2 animate-bounce">🎇</span>
-                <h2 className="text-5xl md:text-6xl font-black golden-text uppercase tracking-tighter leading-none mb-2">¡Feliz 2026!</h2>
-                <p className="text-amber-500/60 font-black text-[10px] uppercase tracking-[0.4em]">Gremio Lamu</p>
+                <span className="text-xs font-black text-emerald-200 uppercase tracking-[0.6em] mb-3 block">Variante: Viento Esmeralda</span>
+                <h2 className="text-5xl md:text-7xl font-black skull-text italic text-white leading-none mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">RAID BOSS</h2>
+                <p className="text-emerald-300/80 font-bold text-[10px] uppercase tracking-[0.4em]">Incursión de Gremio Semanal - Lamu</p>
+              </div>
+              <div className="absolute -bottom-6 -right-6 p-4 opacity-10 pointer-events-none transform rotate-12">
+                <span className="text-9xl font-black italic">WIND</span>
               </div>
             </div>
           )}
 
-          <div className="flex justify-between items-center border-b border-slate-800/50 pb-8">
+          <div className="flex justify-between items-center border-b border-emerald-900/50 pb-8">
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tighter">Ranking Lamu</h1>
+              <h1 className="text-3xl font-black text-white skull-text italic">REGISTROS</h1>
               <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  {cloudStatus === 'connected' ? 'Sincronizado' : 'Local'}
+                <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-rose-500'}`}></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                  {cloudStatus === 'connected' ? 'ESMERALDA ONLINE' : 'ARCHIVO LOCAL'}
                 </span>
               </div>
             </div>
-            <button onClick={refreshData} className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl">
+            <button onClick={refreshData} className="p-4 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/30 rounded-2xl transition-all active:scale-90 shadow-lg">
               {isLoading ? '⌛' : '🔄'}
             </button>
           </div>
 
           {isLoading ? (
             <div className="h-64 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+              <div className="w-12 h-12 border-4 border-emerald-900/30 border-t-emerald-400 rounded-full animate-spin"></div>
+              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Invocando datos...</span>
             </div>
           ) : (
             <div className="animate-in fade-in duration-500">
@@ -163,36 +167,36 @@ const App: React.FC = () => {
                   {history.length > 0 ? (
                     <div className="space-y-4">
                       {history.map(r => (
-                        <div key={r.id} className="bg-slate-900/50 p-5 rounded-3xl border border-slate-800/50 group hover:border-amber-500/20 transition-all">
+                        <div key={r.id} className="bg-emerald-950/20 p-6 rounded-[2rem] border border-emerald-900/20 group hover:border-emerald-500/40 transition-all backdrop-blur-sm">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
                               <div className="relative">
                                 {loadedScreenshots[r.id] ? (
-                                  <img src={loadedScreenshots[r.id]} className="w-16 h-16 rounded-xl object-cover border border-slate-700 shadow-xl" />
+                                  <img src={loadedScreenshots[r.id]} className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-800 shadow-2xl" />
                                 ) : (
                                   <button 
                                     onClick={() => handleLoadImage(r.id)}
-                                    className="w-16 h-16 rounded-xl bg-slate-950 flex flex-col items-center justify-center border border-dashed border-slate-700 hover:border-amber-500 transition-colors"
+                                    className="w-16 h-16 rounded-2xl bg-black/40 flex flex-col items-center justify-center border-2 border-dashed border-emerald-800/30 hover:border-emerald-400 transition-colors group"
                                   >
-                                    <span className="text-xs">📸</span>
-                                    <span className="text-[8px] font-black text-slate-500 uppercase mt-1">Ver</span>
+                                    <span className="text-xl group-hover:scale-125 transition-transform">📷</span>
+                                    <span className="text-[8px] font-black text-emerald-700 uppercase mt-1">LOG</span>
                                   </button>
                                 )}
-                                <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded text-[8px] font-black uppercase ${r.recordType === 'INITIAL' ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white'}`}>
-                                  {r.recordType === 'INITIAL' ? 'INI' : 'TKT'}
+                                <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase shadow-lg ${r.recordType === 'INITIAL' ? 'bg-emerald-600 text-white' : 'bg-teal-600 text-white'}`}>
+                                  {r.recordType === 'INITIAL' ? 'BASE' : 'TKT'}
                                 </span>
                               </div>
                               <div>
-                                <h4 className="font-bold text-white text-sm">{r.playerName}</h4>
-                                <p className="text-[9px] text-slate-500 font-bold uppercase">
+                                <h4 className="font-black text-white text-base skull-text italic tracking-tighter">{r.playerName}</h4>
+                                <p className="text-[9px] text-emerald-800 font-bold uppercase tracking-widest">
                                   {new Date(r.timestamp).toLocaleDateString()}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-6">
                               <div className="text-right">
-                                <span className="block font-mono font-black text-amber-400 text-lg leading-none">{r.ticketDamage.toLocaleString()}</span>
-                                <span className="text-[8px] text-slate-600 font-black uppercase">Daño Ticket</span>
+                                <span className="block font-mono font-black text-emerald-400 text-xl leading-none">{r.ticketDamage.toLocaleString()}</span>
+                                <span className="text-[8px] text-emerald-900 font-black uppercase tracking-widest mt-1 block">DAÑO FINAL</span>
                               </div>
                               {isAdminAuthenticated && (
                                 <button onClick={() => handleDeleteEntry(r.id)} disabled={isDeletingId === r.id} className="p-3 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all">
@@ -202,29 +206,32 @@ const App: React.FC = () => {
                             </div>
                           </div>
                           {loadedScreenshots[r.id] && (
-                            <div className="mt-2 animate-in slide-in-from-top-2 duration-300">
-                              <img src={loadedScreenshots[r.id]} className="w-full rounded-2xl border border-slate-800" />
+                            <div className="mt-4 animate-in slide-in-from-top-4 duration-500">
+                              <img src={loadedScreenshots[r.id]} className="w-full rounded-[1.5rem] border-2 border-emerald-900/30 shadow-inner" />
                             </div>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="py-20 text-center text-slate-600 uppercase text-[10px] tracking-widest">Sin registros</div>
+                    <div className="py-20 text-center text-emerald-900 uppercase text-[10px] tracking-[0.5em]">No se han detectado señales de asalto</div>
                   )}
                 </div>
               )}
               
               {activeView === ViewMode.SETTINGS && (
                 !isAdminAuthenticated ? (
-                  <div className="max-w-md mx-auto mt-10 p-10 bg-slate-900 border border-amber-500/20 rounded-[3rem] text-center space-y-6">
-                    <h2 className="text-xl font-black text-white uppercase">Acceso Admin</h2>
-                    <input type="password" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} placeholder="Contraseña" className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white" />
+                  <div className="max-w-md mx-auto mt-10 p-12 bg-emerald-950/20 border-2 border-emerald-900/10 rounded-[2.5rem] text-center space-y-8 shadow-2xl backdrop-blur-xl">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-black text-white skull-text italic">SEGURIDAD NIVEL 5</h2>
+                      <p className="text-[10px] text-emerald-800 uppercase tracking-widest">Acceso restringido a Maestros de Gremio</p>
+                    </div>
+                    <input type="password" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} placeholder="PASWORD" className="w-full bg-black/40 border-2 border-emerald-900/20 rounded-2xl px-6 py-4 text-center text-emerald-400 focus:border-emerald-500/50 outline-none transition-all font-mono" />
                     <button onClick={() => { 
                       const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
                       if (adminPasswordInput === (s.adminPassword || 'admin123')) setIsAdminAuthenticated(true);
-                      else alert("Incorrecta");
-                    }} className="w-full bg-amber-600 text-white py-4 rounded-2xl font-black uppercase text-xs">Entrar</button>
+                      else alert("Firma energética no reconocida");
+                    }} className="w-full bg-emerald-600 hover:bg-emerald-500 text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl shadow-emerald-900/20">Autorizar Terminal</button>
                   </div>
                 ) : <Settings stats={stats} onReset={refreshData} />
               )}

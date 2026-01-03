@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { analyzeDamageScreenshot } from '../services/geminiService';
 import { saveRecord, hasUserStartedSeason } from '../services/dbService';
@@ -38,7 +37,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage("Leyendo captura...");
+    setStatusMessage("ESCANEO EN CURSO...");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -49,9 +48,9 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         if (result.playerName) setPlayerName(result.playerName);
         if (result.totalDamage) setTotalDamage(result.totalDamage.toString());
         if (result.ticketDamage) setTicketDamage(result.ticketDamage.toString());
-        setStatusMessage("✓ ¡Datos extraídos!");
+        setStatusMessage("✓ CRISTALIZACIÓN COMPLETADA");
       } catch (err) {
-        setStatusMessage("⚠️ Error IA. Completa manualmente.");
+        setStatusMessage("⚠️ FALLO EN SCAN. MANUAL REQUERIDO.");
       } finally { setIsAnalyzing(false); }
     };
     reader.readAsDataURL(file);
@@ -59,12 +58,10 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!playerName || !ticketDamage) return alert("Falta nombre o daño de ticket");
-    if (isFirstEntry && !totalDamage) return alert("Para el primer reporte debes incluir el Daño Total actual.");
+    if (!playerName || !ticketDamage) return alert("Faltan coordenadas de daño");
 
     setIsSaving(true);
-    setStatusMessage("Sincronizando con la nube...");
+    setStatusMessage("SINCRONIZANDO CON LA RED ESMERALDA...");
 
     try {
       const record = {
@@ -81,7 +78,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
       const settings = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
       if (settings.discordWebhook) {
-        setStatusMessage("Enviando a Discord...");
+        setStatusMessage("TRANSMITIENDO A DISCORD...");
         await sendDamageToDiscord(settings.discordWebhook, {
           playerName: record.playerName,
           guild: record.guild,
@@ -93,8 +90,8 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
       onSuccess();
     } catch (err: any) {
-      alert(`ERROR DE SINCRONIZACIÓN:\n${err.message || 'Error desconocido'}`);
-      setStatusMessage("❌ Falló el guardado");
+      alert(`ERROR DE RED:\n${err.message || 'Error desconocido'}`);
+      setStatusMessage("❌ TRANSMISIÓN FALLIDA");
     } finally { 
       setIsSaving(false); 
     }
@@ -102,64 +99,63 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
   if (!currentUser) {
     return (
-      <div className="max-w-xl mx-auto py-20 text-center bg-slate-900 rounded-[3rem] p-12 border border-slate-800">
-        <h2 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Identificación Necesaria</h2>
-        <button onClick={onLoginRequest} className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20">Identificarse con Discord</button>
+      <div className="max-w-xl mx-auto py-24 text-center bg-emerald-950/30 rounded-[3rem] p-12 border-2 border-emerald-900/20 backdrop-blur-md">
+        <h2 className="text-3xl font-black text-white skull-text italic mb-8 tracking-tighter">ACCESO DENEGADO</h2>
+        <button onClick={onLoginRequest} className="w-full bg-emerald-600 py-6 rounded-[2rem] font-black text-emerald-950 uppercase tracking-[0.2em] hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-95">Iniciando Sincronía Discord</button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto pb-20 animate-in fade-in duration-700">
-      <div className="bg-slate-900 rounded-[3rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
+    <div className="max-w-xl mx-auto pb-24 animate-in fade-in duration-700">
+      <div className="bg-emerald-950/30 rounded-[3rem] p-10 border-2 border-emerald-900/20 shadow-2xl backdrop-blur-md relative overflow-hidden">
         
         {isFirstEntry ? (
-          <div className="mb-8 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-center">
-            <p className="text-indigo-300 font-black text-[10px] uppercase tracking-[0.2em]">⚡ PRIMER REPORTE DETECTADO</p>
-            <p className="text-slate-500 text-[9px] mt-1">Este reporte establecerá tu daño base en el ranking.</p>
+          <div className="mb-8 p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-center">
+            <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em] mb-1">⚡ REGISTRO DE BASE DETECTADO</p>
+            <p className="text-emerald-900 text-[9px] font-bold uppercase">Iniciando cálculo de temporada para el guerrero.</p>
           </div>
         ) : (
-          <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
-            <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em]">📈 SUMANDO TICKET</p>
-            <p className="text-slate-500 text-[9px] mt-1">Sincronizado: Tu daño base ya está registrado.</p>
+          <div className="mb-8 p-5 bg-teal-500/10 border border-teal-500/30 rounded-2xl text-center">
+            <p className="text-teal-400 font-black text-[10px] uppercase tracking-[0.4em] mb-1">📈 INCREMENTO DE PODER</p>
+            <p className="text-emerald-900 text-[9px] font-bold uppercase">Sumando ticket al registro base verificado.</p>
           </div>
         )}
 
         {statusMessage && (
-          <div className="mb-4 text-center">
-            <span className="text-[10px] font-bold text-indigo-400 animate-pulse uppercase tracking-widest">{statusMessage}</span>
+          <div className="mb-6 text-center">
+            <span className="text-[10px] font-black text-emerald-400 animate-pulse uppercase tracking-[0.3em]">{statusMessage}</span>
           </div>
         )}
 
-        <div onClick={() => !isAnalyzing && fileInputRef.current?.click()} className="mb-8 cursor-pointer group">
+        <div onClick={() => !isAnalyzing && fileInputRef.current?.click()} className="mb-10 cursor-pointer group">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
           {previewUrl ? (
             <div className="relative">
-              <img src={previewUrl} className="max-h-64 mx-auto rounded-3xl border-2 border-slate-800 group-hover:border-indigo-500/50 transition-all" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950/40 rounded-3xl">
-                <span className="text-white font-black uppercase text-[10px] tracking-widest bg-slate-900 px-4 py-2 rounded-full border border-white/20">Cambiar Foto</span>
+              <img src={previewUrl} className="max-h-72 mx-auto rounded-[2rem] border-2 border-emerald-800/50 group-hover:border-emerald-400 transition-all shadow-2xl" />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-[2rem]">
+                <span className="text-emerald-400 font-black uppercase text-[10px] tracking-widest bg-emerald-950 px-6 py-3 rounded-full border border-emerald-500/30">Re-Escanear</span>
               </div>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-slate-800 rounded-3xl py-12 text-center group-hover:border-indigo-500/50 transition-all">
-              <span className="text-4xl">📸</span>
-              <p className="text-slate-500 font-black text-[10px] uppercase mt-4 tracking-widest">Sube tu captura de batalla</p>
+            <div className="border-2 border-dashed border-emerald-900/40 rounded-[2.5rem] py-16 text-center group-hover:border-emerald-500/50 transition-all bg-black/20">
+              <span className="text-5xl drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">📸</span>
+              <p className="text-emerald-800 font-black text-[10px] uppercase mt-5 tracking-[0.3em]">Cargar Informe de Daño</p>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* SELECCIÓN DE GREMIO */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Gremio al que perteneces</label>
-            <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest ml-5">División de Gremio</label>
+            <div className="grid grid-cols-2 gap-4 p-2 bg-black/40 rounded-[2rem] border border-emerald-900/30">
               <button
                 type="button"
                 onClick={() => setGuild('Principal')}
-                className={`py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+                className={`py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.2em] transition-all active:scale-95 ${
                   guild === 'Principal' 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                    : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-emerald-600 text-emerald-950 shadow-lg' 
+                    : 'text-emerald-900 hover:text-emerald-400'
                 }`}
               >
                 Principal
@@ -167,10 +163,10 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
               <button
                 type="button"
                 onClick={() => setGuild('Secundario')}
-                className={`py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+                className={`py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.2em] transition-all active:scale-95 ${
                   guild === 'Secundario' 
-                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' 
-                    : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-teal-700 text-white shadow-lg' 
+                    : 'text-emerald-900 hover:text-emerald-400'
                 }`}
               >
                 Secundario
@@ -178,46 +174,44 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Nombre del Guerrero</label>
-            <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black" />
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest ml-5">Nombre del Guerrero</label>
+            <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} className="w-full bg-black/40 border border-emerald-900/30 rounded-2xl px-6 py-5 text-white font-black skull-text italic text-lg outline-none focus:border-emerald-500/50 transition-all" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 relative">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Total (Base)</label>
-              <div className="relative overflow-hidden rounded-2xl group/blocked">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3 relative">
+              <label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest ml-5">Daño Base</label>
+              <div className="relative overflow-hidden rounded-2xl">
                 <input 
                   type="text" 
                   value={totalDamage} 
                   onChange={e => setTotalDamage(e.target.value)} 
                   disabled={!isFirstEntry}
-                  placeholder={isFirstEntry ? "Ej: 340.000.000" : ""}
-                  className={`w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 font-mono font-black text-lg transition-all ${isFirstEntry ? 'text-white border-indigo-500/50' : 'text-slate-800 opacity-20 grayscale cursor-not-allowed'}`} 
+                  placeholder={isFirstEntry ? "0" : ""}
+                  className={`w-full bg-black/40 border border-emerald-900/30 rounded-2xl px-6 py-5 font-mono font-black text-xl transition-all ${isFirstEntry ? 'text-white border-emerald-500/40' : 'text-emerald-950 opacity-20 cursor-not-allowed'}`} 
                 />
                 {!isFirstEntry && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-rose-950/20 backdrop-blur-[2px]">
-                    <div className="bg-rose-600 text-white text-[11px] font-black px-4 py-1.5 rounded-lg uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(225,29,72,0.5)] border-2 border-rose-400 rotate-[-5deg] scale-110 animate-pulse">
-                      BLOQUEADO
-                    </div>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-emerald-950/40 backdrop-blur-[1px]">
+                    <span className="text-[9px] font-black text-emerald-500 border border-emerald-500 px-3 py-1 rounded-md uppercase tracking-widest rotate-[-5deg]">BLOQUEADO</span>
                   </div>
                 )}
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Daño Ticket</label>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest ml-5">Daño Ticket</label>
               <input 
                 type="text" 
                 value={ticketDamage} 
                 onChange={e => setTicketDamage(e.target.value)} 
                 placeholder="0"
-                className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-4 text-cyan-400 font-mono font-black text-lg focus:border-cyan-500 outline-none transition-all" 
+                className="w-full bg-black/40 border-2 border-emerald-400/30 rounded-2xl px-6 py-5 text-emerald-400 font-mono font-black text-xl outline-none focus:border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.1)]" 
               />
             </div>
           </div>
 
-          <button disabled={isAnalyzing || isSaving} className="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 py-6 rounded-2xl text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
-            {isSaving ? 'GUARDANDO...' : 'CONFIRMAR REPORTE'}
+          <button disabled={isAnalyzing || isSaving} className="w-full wind-gradient py-7 rounded-[2rem] text-emerald-950 font-black uppercase tracking-[0.3em] text-xs shadow-2xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-30">
+            {isSaving ? 'EXTRAYENDO ENERGÍA...' : 'CONFIRMAR ASALTO'}
           </button>
         </form>
       </div>
