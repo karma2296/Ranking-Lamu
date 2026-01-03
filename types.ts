@@ -32,7 +32,8 @@ export interface PlayerStats {
 
 export interface AppSettings {
   discordWebhook: string;
-  discordRankingWebhook: string; // Canal exclusivo para el Ranking
+  discordRankingWebhook: string; 
+  customAppUrl?: string; // Nuevo: URL manual para botones
   supabaseUrl: string;
   supabaseKey: string;
   guildName: string;

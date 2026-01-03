@@ -2,6 +2,12 @@
 import { DiscordUser, PlayerStats } from '../types';
 
 const getAppUrl = () => {
+  // Intentamos obtener la URL manual desde los ajustes guardados
+  const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+  if (s.customAppUrl && s.customAppUrl.trim() !== '') {
+    return s.customAppUrl;
+  }
+  // Si no hay manual, usamos la actual del navegador
   return window.location.origin + window.location.pathname;
 };
 
@@ -23,14 +29,13 @@ export const sendDamageToDiscord = async (
     timestamp: new Date().toISOString()
   };
 
-  // Botón para ir a la web
   const components = [
     {
-      type: 1, // Action Row
+      type: 1, 
       components: [
         {
-          type: 2, // Button
-          style: 5, // Link
+          type: 2, 
+          style: 5, 
           label: "Ver Historial Completo",
           url: getAppUrl()
         }
@@ -77,7 +82,7 @@ export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStat
     timestamp: new Date().toISOString()
   };
 
-  // Botón para ir a la web (Ranking)
+  // Botón para ir a la web (Ranking actualizado a "Registra tu daño")
   const components = [
     {
       type: 1,
@@ -85,9 +90,9 @@ export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStat
         {
           type: 2,
           style: 5,
-          label: "Ver Ranking en la Web",
+          label: "Registra tu daño",
           url: getAppUrl(),
-          emoji: { name: "📊" }
+          emoji: { name: "⚔️" }
         }
       ]
     }

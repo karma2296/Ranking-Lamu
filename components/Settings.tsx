@@ -15,6 +15,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
     const defaultSettings: AppSettings = {
       discordWebhook: '', 
       discordRankingWebhook: '',
+      customAppUrl: '',
       supabaseUrl: '', 
       supabaseKey: '', 
       guildName: 'Locked \'N\' Loaded', 
@@ -111,7 +112,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             </div>
           </div>
 
-          {/* WEBHOOKS (Persistencia corregida) */}
+          {/* WEBHOOKS Y URL MANUAL */}
           <div className="space-y-6 pt-4 border-t border-slate-800/30">
             <div className="space-y-3">
               <label className="text-[9px] font-black text-[#10b981] uppercase tracking-widest ml-1">Webhook: Registros de Daño (Canal 1)</label>
@@ -132,6 +133,18 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
                 className="w-full bg-[#0a1224] border border-blue-500/20 rounded-2xl px-6 py-5 text-blue-400 font-mono text-xs focus:border-blue-500/50 outline-none transition-all" 
                 placeholder="https://discord.com/api/webhooks/..."
               />
+            </div>
+            {/* NUEVO CAMPO: URL MANUAL PARA BOTONES */}
+            <div className="space-y-3 pt-2">
+              <label className="text-[9px] font-black text-emerald-400 uppercase tracking-widest ml-1">URL Destino de los Botones de Discord</label>
+              <input 
+                type="text" 
+                value={settings.customAppUrl || ''} 
+                onChange={e => setSettings(prev => ({...prev, customAppUrl: e.target.value}))} 
+                className="w-full bg-[#0a1224] border border-emerald-500/40 rounded-2xl px-6 py-5 text-emerald-300 font-mono text-xs focus:border-emerald-500 outline-none transition-all" 
+                placeholder="https://tu-pagina-web.com (Opcional)"
+              />
+              <p className="text-[8px] text-slate-500 uppercase font-bold tracking-widest ml-1">Si se deja vacío, se usará el link actual de esta página.</p>
             </div>
           </div>
 
