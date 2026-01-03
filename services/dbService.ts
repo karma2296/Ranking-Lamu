@@ -31,7 +31,6 @@ export const hasUserStartedSeason = async (discordId: string): Promise<boolean> 
   return false;
 };
 
-// Columnas seguras (sin la foto pesada)
 const SAFE_COLUMNS = 'id,player_name,guild,record_type,total_damage,ticket_damage,timestamp,discord_id,discord_username,discord_avatar';
 
 export const getRankingRecords = async (): Promise<DamageRecord[]> => {
@@ -67,7 +66,6 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      // EXCLUIMOS screenshot_url para ahorrar ancho de banda
       const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${SAFE_COLUMNS}&order=timestamp.desc&limit=50`, {
         headers: { 
           'apikey': config.supabaseKey, 
@@ -93,7 +91,6 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 };
 
-// Nueva función para cargar la foto solo cuando se hace clic
 export const getRecordScreenshot = async (id: string): Promise<string | null> => {
   const config = getSupabaseConfig();
   if (!config?.supabaseUrl || !config?.supabaseKey) return null;
@@ -148,7 +145,6 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
     }
   }
   
-  // No guardamos la foto en el localstorage para no saturarlo
   const { screenshotUrl, ...light } = newRecord;
   const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   history.unshift(light);
@@ -230,6 +226,13 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
     const incrementalTickets = userRecords.filter(r => r.timestamp > initial.timestamp);
     const totalTicketsSum = incrementalTickets.reduce((acc, r) => acc + (r.ticketDamage || 0), 0);
     
+    // Obtener Top 5 tickets ordenados de mayor a menor
+    const topTickets = userRecords
+      .map(r => r.ticketDamage || 0)
+      .filter(d => d > 0)
+      .sort((a, b) => b - a)
+      .slice(0, 5);
+
     const dailyTickets = userRecords.filter(r => (now - r.timestamp) < ONE_DAY);
     const maxDaily = dailyTickets.length > 0 ? Math.max(...dailyTickets.map(r => r.ticketDamage || 0)) : 0;
 
@@ -242,7 +245,8 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
       maxDailyTicket: maxDaily,
       totalEntries: userRecords.length,
       lastUpdated: last.timestamp,
-      discordUser: last.discordUser
+      discordUser: last.discordUser,
+      topTickets
     });
   });
 

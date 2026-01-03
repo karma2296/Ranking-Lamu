@@ -27,6 +27,7 @@ export interface PlayerStats {
   totalEntries: number;
   lastUpdated: number;
   discordUser?: DiscordUser;
+  topTickets: number[]; // Las 5 mejores marcas individuales
 }
 
 export interface AppSettings {

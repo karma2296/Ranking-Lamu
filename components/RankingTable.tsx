@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { PlayerStats } from '../types';
 
@@ -37,6 +38,9 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
     stats.forEach((p, i) => {
       const emoji = i === 0 ? '💚' : i === 1 ? '🥇' : i === 2 ? '🥈' : '🥉';
       msg += `${emoji} **${p.playerName}** » \`${p.accumulatedTotal.toLocaleString()}\` *(⚡ Max: ${p.maxDailyTicket.toLocaleString()})*\n`;
+      if (p.topTickets && p.topTickets.length > 0) {
+        msg += `   ╰ Top 5: ${p.topTickets.map(t => `\`${t.toLocaleString()}\``).join(' | ')}\n`;
+      }
     });
     navigator.clipboard.writeText(msg);
     setIsCopied(true);
@@ -57,40 +61,58 @@ const RankingTable: React.FC<RankingTableProps> = ({ stats }) => {
           <thead>
             <tr className="bg-black/30 border-b border-emerald-900/30">
               <th className="px-8 py-7 text-[10px] font-black text-emerald-700 uppercase tracking-[0.4em] text-center">RANGO</th>
-              <th className="px-8 py-7 text-[10px] font-black text-emerald-700 uppercase tracking-[0.4em]">GUERRERO</th>
+              <th className="px-8 py-7 text-[10px] font-black text-emerald-700 uppercase tracking-[0.4em]">GUERRERO / TOP MARCAS</th>
               <th className="px-8 py-7 text-[10px] font-black text-emerald-700 uppercase tracking-[0.4em] text-right">PUNTUACIÓN</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-emerald-900/20">
             {stats.map((p, i) => (
               <tr key={i} className="hover:bg-emerald-400/[0.03] transition-colors group">
-                <td className="px-8 py-10 text-center w-24">
+                <td className="px-8 py-10 text-center w-24 align-top">
                   {i < 3 ? (
-                    <div className="w-14 h-14 mx-auto drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] transform group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 mx-auto drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] transform group-hover:scale-110 transition-transform mt-2">
                       <MedalSVG type={i === 0 ? 'emerald' : i === 1 ? 'gold' : 'silver'} />
                     </div>
                   ) : (
-                    <span className="font-mono font-black text-emerald-900 text-lg italic">#{i + 1}</span>
+                    <span className="font-mono font-black text-emerald-900 text-lg italic block mt-5">#{i + 1}</span>
                   )}
                 </td>
                 <td className="px-8 py-10">
-                  <div className="flex items-center gap-6">
-                    <div className="relative">
-                      <img src={p.discordUser?.avatar || 'https://via.placeholder.com/100'} className="w-16 h-16 rounded-2xl border-2 border-emerald-900/40 group-hover:border-emerald-400/50 transition-all shadow-xl" />
-                      {i === 0 && <span className="absolute -top-4 -right-4 text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">🍃</span>}
+                  <div className="flex flex-col gap-6">
+                    <div className="flex items-center gap-6">
+                      <div className="relative">
+                        <img src={p.discordUser?.avatar || 'https://via.placeholder.com/100'} className="w-16 h-16 rounded-2xl border-2 border-emerald-900/40 group-hover:border-emerald-400/50 transition-all shadow-xl" />
+                        {i === 0 && <span className="absolute -top-4 -right-4 text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">🍃</span>}
+                      </div>
+                      <div>
+                        <h4 className={`font-black skull-text italic text-xl tracking-tighter ${i === 0 ? 'text-emerald-400' : 'text-white'}`}>{p.playerName}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="bg-emerald-950/40 text-emerald-600 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border border-emerald-900/30">
+                            DAILY MAX: {p.maxDailyTicket.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className={`font-black skull-text italic text-xl tracking-tighter ${i === 0 ? 'text-emerald-400' : 'text-white'}`}>{p.playerName}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="bg-emerald-950/40 text-emerald-600 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border border-emerald-900/30">
-                          MAX: {p.maxDailyTicket.toLocaleString()}
-                        </span>
+
+                    {/* NUEVA SECCIÓN: TOP TICKETS */}
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-emerald-900 uppercase tracking-[0.3em]">Top 5 Performance:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {p.topTickets.map((val, idx) => (
+                          <div key={idx} className="bg-emerald-900/10 border border-emerald-500/20 rounded-xl px-3 py-1.5 flex items-center gap-2 group/ticket hover:border-emerald-400/50 transition-all">
+                            <span className="text-[8px] font-black text-emerald-700">#{idx + 1}</span>
+                            <span className="font-mono font-bold text-[10px] text-emerald-300 group-hover/ticket:text-white transition-colors">
+                              {val.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                        {p.topTickets.length === 0 && <span className="text-[8px] text-emerald-900/50 uppercase">No hay registros aún</span>}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-10 text-right">
-                  <div className="flex flex-col items-end">
+                <td className="px-8 py-10 text-right align-top">
+                  <div className="flex flex-col items-end mt-2">
                     <span className={`font-mono text-3xl font-black italic tracking-tighter ${i === 0 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'text-white'}`}>
                       {p.accumulatedTotal.toLocaleString()}
                     </span>
