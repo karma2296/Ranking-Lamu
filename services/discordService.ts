@@ -2,13 +2,21 @@
 import { DiscordUser, PlayerStats } from '../types';
 
 const getAppUrl = () => {
-  // Intentamos obtener la URL manual desde los ajustes guardados
   const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+  let url = '';
+  
   if (s.customAppUrl && s.customAppUrl.trim() !== '') {
-    return s.customAppUrl;
+    url = s.customAppUrl.trim();
+  } else {
+    url = window.location.origin + window.location.pathname;
   }
-  // Si no hay manual, usamos la actual del navegador
-  return window.location.origin + window.location.pathname;
+
+  // Validación crítica: Discord rechaza botones si la URL no es absoluta y válida
+  if (!url.startsWith('http')) {
+    url = 'https://' + url;
+  }
+  
+  return url;
 };
 
 export const sendDamageToDiscord = async (
@@ -16,6 +24,8 @@ export const sendDamageToDiscord = async (
   data: { playerName: string, guild: string, damageValue: number, screenshotUrl?: string, discordUser: DiscordUser }
 ) => {
   if (!webhookUrl) return;
+
+  const appUrl = getAppUrl();
 
   const embed = {
     title: "⚔️ REPORTE DE ASALTO: LOCKED 'N' LOADED",
@@ -36,8 +46,8 @@ export const sendDamageToDiscord = async (
         {
           type: 2, 
           style: 5, 
-          label: "Ver Historial Completo",
-          url: getAppUrl()
+          label: "📜 Ver Historial Completo",
+          url: appUrl
         }
       ]
     }
@@ -59,6 +69,8 @@ export const sendDamageToDiscord = async (
 
 export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStats[]) => {
   if (!webhookUrl || stats.length === 0) return;
+
+  const appUrl = getAppUrl();
 
   let table = "```py\n";
   table += "POS | GUERRERO        | DAÑO ACUMULADO\n";
@@ -82,27 +94,35 @@ export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStat
     timestamp: new Date().toISOString()
   };
 
-  // Botón para ir a la web (Ranking actualizado a "Registra tu daño")
-  const components = [
-    {
-      type: 1,
-      components: [
-        {
-          type: 2,
-          style: 5,
-          label: "Registra tu daño",
-          url: getAppUrl(),
-          emoji: { name: "⚔️" }
-        }
-      ]
-    }
-  ];
+  const payload = {
+    embeds: [embed],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 5,
+            label: "⚔️ Registra tu daño",
+            url: appUrl
+          }
+        ]
+      }
+    ]
+  };
 
   try {
-    await fetch(webhookUrl, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed], components })
+      body: JSON.stringify(payload)
     });
-  } catch (error) { console.error("Error enviando ranking:", error); }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Respuesta error de Discord:", errorText);
+    }
+  } catch (error) { 
+    console.error("Error crítico enviando ranking:", error); 
+  }
 };
