@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import RankingTable from './components/RankingTable';
@@ -15,7 +16,11 @@ const App: React.FC = () => {
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [cloudStatus, setCloudStatus] = useState<'connected' | 'local'>('local');
   const [currentUser, setCurrentUser] = useState<DiscordUser | null>(null);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  
+  // Persistir autenticación en sessionStorage para que no se pida tras cada guardado
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    return sessionStorage.getItem('lamu_admin_auth') === 'true';
+  });
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
 
   useEffect(() => {
@@ -98,9 +103,20 @@ const App: React.FC = () => {
 
   const loginWithDiscord = () => {
     const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
-    if (!s.discordClientId) return alert("Falta Discord Client ID.");
+    if (!s.discordClientId) return alert("Falta Discord Client ID en los ajustes del Maestro.");
     const url = `https://discord.com/api/oauth2/authorize?client_id=${s.discordClientId}&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&response_type=token&scope=identify`;
     window.location.href = url;
+  };
+
+  const handleAdminLogin = () => {
+    const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+    const correctPass = s.adminPassword || 'admin123';
+    if (adminPasswordInput === correctPass) {
+      setIsAdminAuthenticated(true);
+      sessionStorage.setItem('lamu_admin_auth', 'true');
+    } else {
+      alert("Firma energética no reconocida.");
+    }
   };
 
   return (
@@ -120,19 +136,20 @@ const App: React.FC = () => {
             <div className="relative overflow-hidden wind-gradient border-2 border-emerald-400/30 rounded-[2.5rem] p-12 text-center shadow-[0_0_60px_rgba(16,185,129,0.15)] group">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent opacity-50"></div>
               <div className="relative z-10">
-                <span className="text-xs font-black text-emerald-200 uppercase tracking-[0.6em] mb-3 block">Variante: Viento Esmeralda</span>
+                <span className="text-xs font-black text-emerald-200 uppercase tracking-[0.6em] mb-3 block">Variante: Locked 'N' Loaded</span>
                 <h2 className="text-5xl md:text-7xl font-black skull-text italic text-white leading-none mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">RAID BOSS</h2>
                 <p className="text-emerald-300/80 font-bold text-[10px] uppercase tracking-[0.4em]">Incursión de Gremio Semanal - Lamu</p>
-              </div>
-              <div className="absolute -bottom-6 -right-6 p-4 opacity-10 pointer-events-none transform rotate-12">
-                <span className="text-9xl font-black italic">WIND</span>
               </div>
             </div>
           )}
 
           <div className="flex justify-between items-center border-b border-emerald-900/50 pb-8">
             <div>
-              <h1 className="text-3xl font-black text-white skull-text italic">REGISTROS</h1>
+              <h1 className="text-3xl font-black text-white skull-text italic">
+                {activeView === ViewMode.DASHBOARD ? 'RANKING' : 
+                 activeView === ViewMode.HISTORY ? 'HISTORIAL' : 
+                 activeView === ViewMode.SETTINGS ? 'AJUSTES' : 'REGISTRO'}
+              </h1>
               <div className="flex items-center gap-2 mt-1">
                 <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-rose-500'}`}></div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
@@ -182,9 +199,6 @@ const App: React.FC = () => {
                                     <span className="text-[8px] font-black text-emerald-700 uppercase mt-1">LOG</span>
                                   </button>
                                 )}
-                                <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase shadow-lg ${r.recordType === 'INITIAL' ? 'bg-emerald-600 text-white' : 'bg-teal-600 text-white'}`}>
-                                  {r.recordType === 'INITIAL' ? 'BASE' : 'TKT'}
-                                </span>
                               </div>
                               <div>
                                 <h4 className="font-black text-white text-base skull-text italic tracking-tighter">{r.playerName}</h4>
@@ -226,12 +240,19 @@ const App: React.FC = () => {
                       <h2 className="text-2xl font-black text-white skull-text italic">SEGURIDAD NIVEL 5</h2>
                       <p className="text-[10px] text-emerald-800 uppercase tracking-widest">Acceso restringido a Maestros de Gremio</p>
                     </div>
-                    <input type="password" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} placeholder="PASWORD" className="w-full bg-black/40 border-2 border-emerald-900/20 rounded-2xl px-6 py-4 text-center text-emerald-400 focus:border-emerald-500/50 outline-none transition-all font-mono" />
-                    <button onClick={() => { 
-                      const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
-                      if (adminPasswordInput === (s.adminPassword || 'admin123')) setIsAdminAuthenticated(true);
-                      else alert("Firma energética no reconocida");
-                    }} className="w-full bg-emerald-600 hover:bg-emerald-500 text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl shadow-emerald-900/20">Autorizar Terminal</button>
+                    <input 
+                      type="password" 
+                      value={adminPasswordInput} 
+                      onChange={(e) => setAdminPasswordInput(e.target.value)} 
+                      placeholder="PASSWORD" 
+                      className="w-full bg-black/40 border-2 border-emerald-900/20 rounded-2xl px-6 py-4 text-center text-emerald-400 focus:border-emerald-500/50 outline-none transition-all font-mono" 
+                    />
+                    <button 
+                      onClick={handleAdminLogin} 
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl shadow-emerald-900/20"
+                    >
+                      Autorizar Terminal
+                    </button>
                   </div>
                 ) : <Settings stats={stats} onReset={refreshData} />
               )}
