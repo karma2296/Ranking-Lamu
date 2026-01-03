@@ -31,12 +31,14 @@ export const hasUserStartedSeason = async (discordId: string): Promise<boolean> 
   return false;
 };
 
+// Columnas seguras (sin la foto pesada)
+const SAFE_COLUMNS = 'id,player_name,guild,record_type,total_damage,ticket_damage,timestamp,discord_id,discord_username,discord_avatar';
+
 export const getRankingRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      const columns = 'id,player_name,guild,record_type,total_damage,ticket_damage,timestamp,discord_id,discord_username,discord_avatar';
-      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${columns}&order=timestamp.desc`, {
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${SAFE_COLUMNS}&order=timestamp.desc`, {
         headers: { 
           'apikey': config.supabaseKey, 
           'Authorization': `Bearer ${config.supabaseKey}`,
@@ -65,7 +67,8 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
   const config = getSupabaseConfig();
   if (config?.supabaseUrl && config?.supabaseKey) {
     try {
-      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=*&order=timestamp.desc&limit=50`, {
+      // EXCLUIMOS screenshot_url para ahorrar ancho de banda
+      const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?select=${SAFE_COLUMNS}&order=timestamp.desc&limit=50`, {
         headers: { 
           'apikey': config.supabaseKey, 
           'Authorization': `Bearer ${config.supabaseKey}`,
@@ -82,13 +85,28 @@ export const getRecords = async (): Promise<DamageRecord[]> => {
           totalDamage: parseInt(r.total_damage || 0),
           ticketDamage: parseInt(r.ticket_damage || 0),
           timestamp: r.timestamp,
-          screenshotUrl: r.screenshot_url,
           discordUser: r.discord_id ? { id: r.discord_id, username: r.discord_username, avatar: r.discord_avatar } : undefined
         }));
       }
     } catch (e) { console.error(e); }
   }
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+};
+
+// Nueva función para cargar la foto solo cuando se hace clic
+export const getRecordScreenshot = async (id: string): Promise<string | null> => {
+  const config = getSupabaseConfig();
+  if (!config?.supabaseUrl || !config?.supabaseKey) return null;
+  try {
+    const response = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=eq.${id}&select=screenshot_url`, {
+      headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data[0]?.screenshot_url || null;
+    }
+  } catch (e) { console.error(e); }
+  return null;
 };
 
 export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>): Promise<DamageRecord> => {
@@ -130,6 +148,7 @@ export const saveRecord = async (record: Omit<DamageRecord, 'id' | 'timestamp'>)
     }
   }
   
+  // No guardamos la foto en el localstorage para no saturarlo
   const { screenshotUrl, ...light } = newRecord;
   const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   history.unshift(light);
@@ -167,19 +186,16 @@ export const updateInitialDamage = async (discordId: string, newBaseDamage: numb
   const config = getSupabaseConfig();
   if (!config?.supabaseUrl || !config?.supabaseKey) throw new Error("Cloud not connected");
 
-  // Buscar el registro inicial para este usuario
   const fetchRes = await fetch(
     `${config.supabaseUrl}/rest/v1/damage_records?discord_id=eq.${discordId}&record_type=eq.INITIAL&select=id`,
     { headers: { 'apikey': config.supabaseKey, 'Authorization': `Bearer ${config.supabaseKey}` } }
   );
   
   const records = await fetchRes.json();
-  if (!records.length) throw new Error("No se encontró registro INICIAL para este usuario");
+  if (!records.length) throw new Error("No se encontró registro INICIAL");
 
   const recordId = records[0].id;
 
-  // Actualizamos el daño y el timestamp para que los tickets anteriores dejen de sumarse.
-  // getPlayerStats suma tickets cuyo timestamp > initial.timestamp
   const updateRes = await fetch(`${config.supabaseUrl}/rest/v1/damage_records?id=eq.${recordId}`, {
     method: 'PATCH',
     headers: {
@@ -193,7 +209,7 @@ export const updateInitialDamage = async (discordId: string, newBaseDamage: numb
     })
   });
 
-  if (!updateRes.ok) throw new Error("Error al actualizar el daño base");
+  if (!updateRes.ok) throw new Error("Error al actualizar");
 };
 
 export const getPlayerStats = async (): Promise<PlayerStats[]> => {
@@ -211,9 +227,6 @@ export const getPlayerStats = async (): Promise<PlayerStats[]> => {
     const initial = userRecords.find(r => r.recordType === 'INITIAL') || userRecords[0];
     const initialTotal = initial.totalDamage || 0;
     
-    // Solo sumamos tickets que hayan ocurrido DESPUÉS del registro inicial actual.
-    // Al actualizar el daño base en Settings, movemos el timestamp del INITIAL a "ahora",
-    // por lo que los tickets antiguos dejarán de sumarse automáticamente.
     const incrementalTickets = userRecords.filter(r => r.timestamp > initial.timestamp);
     const totalTicketsSum = incrementalTickets.reduce((acc, r) => acc + (r.ticketDamage || 0), 0);
     
