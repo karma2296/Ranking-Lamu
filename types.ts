@@ -32,6 +32,7 @@ export interface PlayerStats {
 
 export interface AppSettings {
   discordWebhook: string;
+  discordRankingWebhook: string; // Nuevo campo para canal de ranking
   supabaseUrl: string;
   supabaseKey: string;
   guildName: string;

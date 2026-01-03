@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { analyzeDamageScreenshot } from '../services/geminiService';
-import { saveRecord, hasUserStartedSeason } from '../services/dbService';
-import { sendDamageToDiscord } from '../services/discordService';
-import { DiscordUser, RecordType } from '../types';
+import { saveRecord, hasUserStartedSeason, getPlayerStats } from '../services/dbService';
+import { sendDamageToDiscord, sendRankingToDiscord } from '../services/discordService';
+import { DiscordUser, RecordType, AppSettings } from '../types';
 
 interface AddDamageFormProps {
   onSuccess: () => void;
@@ -61,7 +62,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     if (!playerName || !ticketDamage) return alert("Faltan coordenadas de daño");
 
     setIsSaving(true);
-    setStatusMessage("SINCRONIZANDO CON LA RED ESMERALDA...");
+    setStatusMessage("SINCRONIZANDO CON LA RED...");
 
     try {
       const record = {
@@ -76,9 +77,11 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
       await saveRecord(record);
 
-      const settings = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+      const settings: AppSettings = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+      
+      // 1. Enviar ticket individual al canal de registros
       if (settings.discordWebhook) {
-        setStatusMessage("TRANSMITIENDO A DISCORD...");
+        setStatusMessage("ENVIANDO TICKET...");
         await sendDamageToDiscord(settings.discordWebhook, {
           playerName: record.playerName,
           guild: record.guild,
@@ -86,6 +89,14 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
           screenshotUrl: record.screenshotUrl,
           discordUser: currentUser!
         });
+      }
+
+      // 2. Enviar Ranking Actualizado al canal de ranking específico
+      const rankingWebhook = settings.discordRankingWebhook || settings.discordWebhook;
+      if (rankingWebhook) {
+        setStatusMessage("ACTUALIZANDO CUADRO DE HONOR...");
+        const updatedStats = await getPlayerStats();
+        await sendRankingToDiscord(rankingWebhook, updatedStats);
       }
 
       onSuccess();
@@ -113,12 +124,12 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         {isFirstEntry ? (
           <div className="mb-8 p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-center">
             <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em] mb-1">⚡ REGISTRO DE BASE DETECTADO</p>
-            <p className="text-emerald-900 text-[9px] font-bold uppercase">Iniciando cálculo de temporada para el guerrero.</p>
+            <p className="text-emerald-900 text-[9px] font-bold uppercase">Iniciando cálculo para Locked 'N' Loaded.</p>
           </div>
         ) : (
           <div className="mb-8 p-5 bg-teal-500/10 border border-teal-500/30 rounded-2xl text-center">
             <p className="text-teal-400 font-black text-[10px] uppercase tracking-[0.4em] mb-1">📈 INCREMENTO DE PODER</p>
-            <p className="text-emerald-900 text-[9px] font-bold uppercase">Sumando ticket al registro base verificado.</p>
+            <p className="text-emerald-900 text-[9px] font-bold uppercase">Sumando ticket al registro verificado.</p>
           </div>
         )}
 
@@ -211,7 +222,7 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
           </div>
 
           <button disabled={isAnalyzing || isSaving} className="w-full wind-gradient py-7 rounded-[2rem] text-emerald-950 font-black uppercase tracking-[0.3em] text-xs shadow-2xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-30">
-            {isSaving ? 'EXTRAYENDO ENERGÍA...' : 'CONFIRMAR ASALTO'}
+            {isSaving ? 'ACTUALIZANDO DATOS...' : 'CONFIRMAR ASALTO'}
           </button>
         </form>
       </div>

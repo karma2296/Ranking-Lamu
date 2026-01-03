@@ -11,6 +11,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
   const [settings, setSettings] = useState<AppSettings>({
     discordWebhook: '', 
+    discordRankingWebhook: '',
     supabaseUrl: '', 
     supabaseKey: '', 
     guildName: 'Lamu', 
@@ -28,7 +29,13 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
 
   useEffect(() => {
     const s = localStorage.getItem('lamu_settings');
-    if (s) setSettings(JSON.parse(s));
+    if (s) {
+      const parsed = JSON.parse(s);
+      setSettings({
+        ...settings,
+        ...parsed
+      });
+    }
   }, []);
 
   const handleSave = () => {
@@ -100,7 +107,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
         </button>
       </div>
 
-      {/* GESTIÓN DE GUERREROS (NUEVA SECCIÓN) */}
+      {/* GESTIÓN DE GUERREROS */}
       <div className="bg-slate-900 border border-amber-500/20 rounded-[2.5rem] p-10 space-y-8 shadow-xl">
         <div>
           <h3 className="text-xl font-black text-amber-400 uppercase tracking-tighter flex items-center gap-3">
@@ -148,8 +155,9 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
 
       {/* CONFIGURACIÓN TÉCNICA */}
       <div className="grid gap-6">
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4">Configuración de Base de Datos y Discord</h4>
+        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4 text-emerald-500">Configuración de Canales y Datos</h4>
         <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 space-y-6 backdrop-blur-sm">
+          
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Discord Client ID</label>
@@ -162,11 +170,16 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Discord Webhook URL</label>
-            <input type="text" value={settings.discordWebhook} onChange={e => setSettings({...settings, discordWebhook: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
+            <label className="text-[9px] font-black text-emerald-600 uppercase ml-2">Webhook Registros (Tickets Individuales)</label>
+            <input type="text" value={settings.discordWebhook} onChange={e => setSettings({...settings, discordWebhook: e.target.value})} className="w-full bg-emerald-950/20 border border-emerald-900/30 rounded-2xl px-6 py-4 text-emerald-400 font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
           </div>
 
           <div className="space-y-2">
+            <label className="text-[9px] font-black text-blue-500 uppercase ml-2">Webhook Ranking (Canal de Posiciones)</label>
+            <input type="text" value={settings.discordRankingWebhook} onChange={e => setSettings({...settings, discordRankingWebhook: e.target.value})} className="w-full bg-blue-950/20 border border-blue-900/30 rounded-2xl px-6 py-4 text-blue-400 font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
+          </div>
+
+          <div className="space-y-2 pt-4 border-t border-slate-800">
             <label className="text-[9px] font-black text-slate-600 uppercase ml-2">Supabase URL</label>
             <input type="text" value={settings.supabaseUrl} onChange={e => setSettings({...settings, supabaseUrl: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs" />
           </div>
@@ -176,8 +189,8 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             <input type="password" value={settings.supabaseKey} onChange={e => setSettings({...settings, supabaseKey: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-mono text-xs" />
           </div>
 
-          <button onClick={handleSave} className="w-full bg-slate-100 hover:bg-white text-slate-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl">
-            {saved ? '✓ CAMBIOS GUARDADOS' : 'GUARDAR CONFIGURACIÓN'}
+          <button onClick={handleSave} className="w-full wind-gradient text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl hover:brightness-110 active:scale-95">
+            {saved ? '✓ CONFIGURACIÓN ACTUALIZADA' : 'GUARDAR CAMBIOS'}
           </button>
         </div>
       </div>
