@@ -21,29 +21,30 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
   const [saved, setSaved] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Cargar datos al montar
+  // CARGAR DATOS AL MONTAR EL COMPONENTE
   useEffect(() => {
     const s = localStorage.getItem('lamu_settings');
     if (s) {
       try {
         const parsed = JSON.parse(s);
+        // Mezclamos con el estado inicial para asegurar que no falten campos
         setSettings(prev => ({ ...prev, ...parsed }));
       } catch (e) {
-        console.error("Error al parsear configuración:", e);
+        console.error("Error cargando configuración guardada", e);
       }
     }
   }, []);
 
   const handleSave = () => {
-    // Guardar todo el objeto en localStorage
+    // GUARDAR EN LOCALSTORAGE
     localStorage.setItem('lamu_settings', JSON.stringify(settings));
     setSaved(true);
     
-    // Notificar al padre (App.tsx) para refrescar el estado global
+    // Notificar al componente App para que refresque cualquier dependencia
     if (onReset) onReset();
     
-    // Feedback visual
-    setTimeout(() => setSaved(false), 3000);
+    // Feedback visual breve
+    setTimeout(() => setSaved(false), 2000);
   };
 
   const generateMaestroLink = () => {
@@ -56,18 +57,18 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
       
-      {/* LINK MAESTRO - BOTÓN SUPERIOR */}
+      {/* SECCIÓN DE LINK MAESTRO */}
       <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-[2rem] p-6 shadow-xl backdrop-blur-sm">
         <button 
           onClick={generateMaestroLink} 
-          className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] transition-all ${copiedLink ? 'bg-emerald-500 text-emerald-950 shadow-[0_0_15px_#10b981]' : 'bg-indigo-600/80 text-white hover:bg-indigo-600'}`}
+          className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] transition-all shadow-lg ${copiedLink ? 'bg-emerald-500 text-emerald-950 shadow-[0_0_15px_#10b981]' : 'bg-indigo-600/80 text-white hover:bg-indigo-600'}`}
         >
           {copiedLink ? '✓ ENLACE DE CONFIGURACIÓN COPIADO' : 'GENERAR LINK MAESTRO PARA OTROS DISPOSITIVOS'}
         </button>
       </div>
 
       {/* TERMINAL DE CONTROL DE DATOS */}
-      <div className="bg-[#050b18]/90 border border-[#1e293b] rounded-[2.5rem] p-10 shadow-2xl backdrop-blur-md relative">
+      <div className="bg-[#050b18]/95 border border-[#1e293b] rounded-[2.5rem] p-10 shadow-2xl backdrop-blur-md relative">
         
         <div className="flex items-center gap-3 mb-8">
           <div className="w-2.5 h-2.5 bg-[#10b981] rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></div>
@@ -76,7 +77,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
         
         <div className="space-y-6">
           
-          {/* ACCESO Y CREDENCIALES */}
+          {/* BLOQUE 1: ACCESO Y CREDENCIALES (NUEVOS CAMPOS) */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2">Discord Client ID</label>
@@ -100,7 +101,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             </div>
           </div>
 
-          {/* SUPABASE */}
+          {/* BLOQUE 2: SUPABASE CLOUD */}
           <div className="grid md:grid-cols-2 gap-6 pt-2 border-t border-slate-800/30">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Supabase Project URL</label>
@@ -124,7 +125,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             </div>
           </div>
 
-          {/* WEBHOOKS */}
+          {/* BLOQUE 3: WEBHOOKS DE DISCORD */}
           <div className="space-y-4 pt-2 border-t border-slate-800/30">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-[#10b981] uppercase tracking-widest ml-2">Webhook: Registros de Daño (Canal 1)</label>
@@ -148,17 +149,17 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             </div>
           </div>
 
-          {/* BOTÓN DE GUARDADO PRINCIPAL */}
+          {/* BOTÓN SINCRONIZAR */}
           <button 
             onClick={handleSave} 
             className={`w-full py-6 rounded-2xl font-black uppercase text-xs tracking-[0.4em] transition-all mt-4 shadow-xl active:scale-95 ${saved ? 'bg-emerald-400 text-emerald-950' : 'bg-[#10b981] hover:bg-[#059669] text-emerald-950'}`}
           >
-            {saved ? '✓ CONFIGURACIÓN GUARDADA' : 'SINCRO CON LA NUBE'}
+            {saved ? '✓ DATOS SINCRONIZADOS' : 'SINCRO CON LA NUBE'}
           </button>
         </div>
       </div>
 
-      {/* REINICIO DE TEMPORADA */}
+      {/* PELIGRO: RESET */}
       <div className="pt-8 text-center">
         <button 
           onClick={async () => { if(confirm("¿ELIMINAR TODOS LOS DATOS DE LA TEMPORADA?")) { await clearAllData(); onReset?.(); } }} 

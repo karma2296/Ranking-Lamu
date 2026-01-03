@@ -1,6 +1,10 @@
 
 import { DiscordUser, PlayerStats } from '../types';
 
+const getAppUrl = () => {
+  return window.location.origin + window.location.pathname;
+};
+
 export const sendDamageToDiscord = async (
   webhookUrl: string, 
   data: { playerName: string, guild: string, damageValue: number, screenshotUrl?: string, discordUser: DiscordUser }
@@ -19,9 +23,24 @@ export const sendDamageToDiscord = async (
     timestamp: new Date().toISOString()
   };
 
+  // Botón para ir a la web
+  const components = [
+    {
+      type: 1, // Action Row
+      components: [
+        {
+          type: 2, // Button
+          style: 5, // Link
+          label: "Ver Historial Completo",
+          url: getAppUrl()
+        }
+      ]
+    }
+  ];
+
   try {
     const formData = new FormData();
-    formData.append('payload_json', JSON.stringify({ embeds: [embed] }));
+    formData.append('payload_json', JSON.stringify({ embeds: [embed], components }));
     if (data.screenshotUrl) {
       const base64Data = data.screenshotUrl.split(',')[1];
       const binary = atob(base64Data);
@@ -36,7 +55,6 @@ export const sendDamageToDiscord = async (
 export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStats[]) => {
   if (!webhookUrl || stats.length === 0) return;
 
-  // Formato tabla profesional alineada
   let table = "```py\n";
   table += "POS | GUERRERO        | DAÑO ACUMULADO\n";
   table += "----|-----------------|----------------\n";
@@ -59,11 +77,27 @@ export const sendRankingToDiscord = async (webhookUrl: string, stats: PlayerStat
     timestamp: new Date().toISOString()
   };
 
+  // Botón para ir a la web (Ranking)
+  const components = [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 5,
+          label: "Ver Ranking en la Web",
+          url: getAppUrl(),
+          emoji: { name: "📊" }
+        }
+      ]
+    }
+  ];
+
   try {
     await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] })
+      body: JSON.stringify({ embeds: [embed], components })
     });
   } catch (error) { console.error("Error enviando ranking:", error); }
 };
