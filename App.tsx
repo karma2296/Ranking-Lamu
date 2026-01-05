@@ -17,7 +17,6 @@ const App: React.FC = () => {
   const [cloudStatus, setCloudStatus] = useState<'connected' | 'local'>('local');
   const [currentUser, setCurrentUser] = useState<DiscordUser | null>(null);
   
-  // Persistir autenticación en sessionStorage para que no se pida tras cada guardado
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return sessionStorage.getItem('lamu_admin_auth') === 'true';
   });
@@ -88,7 +87,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteEntry = async (id: string) => {
-    if (!window.confirm("¿Estás seguro de que quieres eliminar este registro?")) return;
+    if (!window.confirm("¿Borrar esta estrofa del historial?")) return;
     
     setIsDeletingId(id);
     try {
@@ -103,7 +102,7 @@ const App: React.FC = () => {
 
   const loginWithDiscord = () => {
     const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
-    if (!s.discordClientId) return alert("Falta Discord Client ID en los ajustes del Maestro.");
+    if (!s.discordClientId) return alert("Falta Discord Client ID.");
     const url = `https://discord.com/api/oauth2/authorize?client_id=${s.discordClientId}&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&response_type=token&scope=identify`;
     window.location.href = url;
   };
@@ -115,12 +114,12 @@ const App: React.FC = () => {
       setIsAdminAuthenticated(true);
       sessionStorage.setItem('lamu_admin_auth', 'true');
     } else {
-      alert("Firma energética no reconocida.");
+      alert("Acceso denegado. Firma vocal incorrecta.");
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-transparent text-emerald-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-transparent text-sky-50 relative z-10">
       <Navigation 
         activeView={activeView} 
         onViewChange={setActiveView} 
@@ -133,39 +132,39 @@ const App: React.FC = () => {
         <div className="max-w-6xl mx-auto space-y-8">
           
           {activeView === ViewMode.DASHBOARD && (
-            <div className="relative overflow-hidden wind-gradient border-2 border-emerald-400/30 rounded-[2.5rem] p-12 text-center shadow-[0_0_60px_rgba(16,185,129,0.15)] group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent opacity-50"></div>
+            <div className="relative overflow-hidden ado-gradient border-2 border-sky-400/30 rounded-[2.5rem] p-12 text-center shadow-[0_0_60px_rgba(14,165,233,0.3)] group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sky-300 to-transparent opacity-50"></div>
               <div className="relative z-10">
-                <span className="text-xs font-black text-emerald-200 uppercase tracking-[0.6em] mb-3 block">Variante: Locked 'N' Loaded</span>
-                <h2 className="text-5xl md:text-7xl font-black skull-text italic text-white leading-none mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">RAID BOSS</h2>
-                <p className="text-emerald-300/80 font-bold text-[10px] uppercase tracking-[0.4em]">Incursión de Gremio Semanal - Lamu</p>
+                <span className="text-xs font-black text-sky-200 uppercase tracking-[0.6em] mb-3 block">Variante: Blue Rose Performance</span>
+                <h2 className="text-5xl md:text-7xl font-black ado-title text-white leading-none mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">ADO REVOLUTION</h2>
+                <p className="text-sky-300/80 font-bold text-[10px] uppercase tracking-[0.4em]">Incursión Nocturna de Gremio - Lamu</p>
               </div>
             </div>
           )}
 
-          <div className="flex justify-between items-center border-b border-emerald-900/50 pb-8">
+          <div className="flex justify-between items-center border-b border-sky-900/50 pb-8">
             <div>
-              <h1 className="text-3xl font-black text-white skull-text italic">
-                {activeView === ViewMode.DASHBOARD ? 'RANKING' : 
-                 activeView === ViewMode.HISTORY ? 'HISTORIAL' : 
-                 activeView === ViewMode.SETTINGS ? 'AJUSTES' : 'REGISTRO'}
+              <h1 className="text-3xl font-black text-white ado-title">
+                {activeView === ViewMode.DASHBOARD ? 'CHART TOPPERS' : 
+                 activeView === ViewMode.HISTORY ? 'ARCHIVOS BLUE' : 
+                 activeView === ViewMode.SETTINGS ? 'CONSOLA MAESTRA' : 'GRABACIÓN'}
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-rose-500'}`}></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
-                  {cloudStatus === 'connected' ? 'ESMERALDA ONLINE' : 'ARCHIVO LOCAL'}
+                <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-sky-400 animate-pulse shadow-[0_0_10px_rgba(14,165,233,0.8)]' : 'bg-rose-500'}`}></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-sky-600">
+                  {cloudStatus === 'connected' ? 'CONEXIÓN CIAN ESTABLE' : 'MEMORIA LOCAL'}
                 </span>
               </div>
             </div>
-            <button onClick={refreshData} className="p-4 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/30 rounded-2xl transition-all active:scale-90 shadow-lg">
+            <button onClick={refreshData} className="p-4 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-800/30 rounded-2xl transition-all active:scale-90 shadow-lg">
               {isLoading ? '⌛' : '🔄'}
             </button>
           </div>
 
           {isLoading ? (
             <div className="h-64 flex flex-col items-center justify-center gap-4">
-              <div className="w-12 h-12 border-4 border-emerald-900/30 border-t-emerald-400 rounded-full animate-spin"></div>
-              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Invocando datos...</span>
+              <div className="w-12 h-12 border-4 border-sky-900/30 border-t-sky-400 rounded-full animate-spin"></div>
+              <span className="text-[10px] font-black uppercase text-sky-400 tracking-widest">Sintonizando frecuencias...</span>
             </div>
           ) : (
             <div className="animate-in fade-in duration-500">
@@ -184,33 +183,33 @@ const App: React.FC = () => {
                   {history.length > 0 ? (
                     <div className="space-y-4">
                       {history.map(r => (
-                        <div key={r.id} className="bg-emerald-950/20 p-6 rounded-[2rem] border border-emerald-900/20 group hover:border-emerald-500/40 transition-all backdrop-blur-sm">
+                        <div key={r.id} className="bg-sky-950/20 p-6 rounded-[2rem] border border-sky-900/20 group hover:border-sky-400/40 transition-all backdrop-blur-sm">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
                               <div className="relative">
                                 {loadedScreenshots[r.id] ? (
-                                  <img src={loadedScreenshots[r.id]} className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-800 shadow-2xl" />
+                                  <img src={loadedScreenshots[r.id]} className="w-16 h-16 rounded-2xl object-cover border-2 border-sky-800 shadow-2xl" />
                                 ) : (
                                   <button 
                                     onClick={() => handleLoadImage(r.id)}
-                                    className="w-16 h-16 rounded-2xl bg-black/40 flex flex-col items-center justify-center border-2 border-dashed border-emerald-800/30 hover:border-emerald-400 transition-colors group"
+                                    className="w-16 h-16 rounded-2xl bg-black/40 flex flex-col items-center justify-center border-2 border-dashed border-sky-800/30 hover:border-sky-400 transition-colors group"
                                   >
-                                    <span className="text-xl group-hover:scale-125 transition-transform">📷</span>
-                                    <span className="text-[8px] font-black text-emerald-700 uppercase mt-1">LOG</span>
+                                    <span className="text-xl group-hover:scale-125 transition-transform text-sky-300">🎵</span>
+                                    <span className="text-[8px] font-black text-sky-700 uppercase mt-1">REC</span>
                                   </button>
                                 )}
                               </div>
                               <div>
-                                <h4 className="font-black text-white text-base skull-text italic tracking-tighter">{r.playerName}</h4>
-                                <p className="text-[9px] text-emerald-800 font-bold uppercase tracking-widest">
+                                <h4 className="font-black text-white text-base ado-title tracking-tighter">{r.playerName}</h4>
+                                <p className="text-[9px] text-sky-700 font-bold uppercase tracking-widest">
                                   {new Date(r.timestamp).toLocaleDateString()}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-6">
                               <div className="text-right">
-                                <span className="block font-mono font-black text-emerald-400 text-xl leading-none">{r.ticketDamage.toLocaleString()}</span>
-                                <span className="text-[8px] text-emerald-900 font-black uppercase tracking-widest mt-1 block">DAÑO FINAL</span>
+                                <span className="block font-mono font-black text-sky-400 text-xl leading-none">{r.ticketDamage.toLocaleString()}</span>
+                                <span className="text-[8px] text-sky-900 font-black uppercase tracking-widest mt-1 block">SCORE</span>
                               </div>
                               {isAdminAuthenticated && (
                                 <button onClick={() => handleDeleteEntry(r.id)} disabled={isDeletingId === r.id} className="p-3 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all">
@@ -221,37 +220,37 @@ const App: React.FC = () => {
                           </div>
                           {loadedScreenshots[r.id] && (
                             <div className="mt-4 animate-in slide-in-from-top-4 duration-500">
-                              <img src={loadedScreenshots[r.id]} className="w-full rounded-[1.5rem] border-2 border-emerald-900/30 shadow-inner" />
+                              <img src={loadedScreenshots[r.id]} className="w-full rounded-[1.5rem] border-2 border-sky-900/30 shadow-inner" />
                             </div>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="py-20 text-center text-emerald-900 uppercase text-[10px] tracking-[0.5em]">No se han detectado señales de asalto</div>
+                    <div className="py-20 text-center text-sky-900 uppercase text-[10px] tracking-[0.5em]">El escenario está en silencio</div>
                   )}
                 </div>
               )}
               
               {activeView === ViewMode.SETTINGS && (
                 !isAdminAuthenticated ? (
-                  <div className="max-w-md mx-auto mt-10 p-12 bg-emerald-950/20 border-2 border-emerald-900/10 rounded-[2.5rem] text-center space-y-8 shadow-2xl backdrop-blur-xl">
+                  <div className="max-w-md mx-auto mt-10 p-12 bg-sky-950/20 border-2 border-sky-900/10 rounded-[2.5rem] text-center space-y-8 shadow-2xl backdrop-blur-xl">
                     <div className="space-y-2">
-                      <h2 className="text-2xl font-black text-white skull-text italic">SEGURIDAD NIVEL 5</h2>
-                      <p className="text-[10px] text-emerald-800 uppercase tracking-widest">Acceso restringido a Maestros de Gremio</p>
+                      <h2 className="text-2xl font-black text-white ado-title">SECURITY: BLACK NIGHT</h2>
+                      <p className="text-[10px] text-sky-800 uppercase tracking-widest">Solo para el Staff del Concierto</p>
                     </div>
                     <input 
                       type="password" 
                       value={adminPasswordInput} 
                       onChange={(e) => setAdminPasswordInput(e.target.value)} 
-                      placeholder="PASSWORD" 
-                      className="w-full bg-black/40 border-2 border-emerald-900/20 rounded-2xl px-6 py-4 text-center text-emerald-400 focus:border-emerald-500/50 outline-none transition-all font-mono" 
+                      placeholder="FIRMA VOCAL" 
+                      className="w-full bg-black/40 border-2 border-sky-900/20 rounded-2xl px-6 py-4 text-center text-sky-400 focus:border-sky-500/50 outline-none transition-all font-mono" 
                     />
                     <button 
                       onClick={handleAdminLogin} 
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-emerald-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl shadow-emerald-900/20"
+                      className="w-full bg-sky-600 hover:bg-sky-500 text-sky-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl shadow-sky-900/20"
                     >
-                      Autorizar Terminal
+                      Autorizar Consola
                     </button>
                   </div>
                 ) : <Settings stats={stats} onReset={refreshData} />

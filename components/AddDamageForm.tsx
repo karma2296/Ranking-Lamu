@@ -13,42 +13,37 @@ interface AddDamageFormProps {
 
 const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, onLoginRequest }) => {
   const [playerName, setPlayerName] = useState('');
-  const [guild, setGuild] = useState<'Principal' | 'Secundario'>('Principal');
   const [totalDamage, setTotalDamage] = useState('');
   const [ticketDamage, setTicketDamage] = useState('');
   const [isFirstEntry, setIsFirstEntry] = useState(true);
-  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const checkUserHistory = async () => {
-      if (!currentUser) return;
-      const started = await hasUserStartedSeason(currentUser.id);
-      setIsFirstEntry(!started);
-    };
-    checkUserHistory();
+    if (currentUser) {
+      hasUserStartedSeason(currentUser.id).then(started => setIsFirstEntry(!started));
+    }
   }, [currentUser]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsAnalyzing(true);
-    setStatusMessage("ESCANEO TÁCTICO EN CURSO...");
+    setStatus("ESCANEANDO FRECUENCIAS...");
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
       setPreviewUrl(base64);
       try {
-        const result = await analyzeDamageScreenshot(base64);
-        if (result.playerName) setPlayerName(result.playerName);
-        if (result.totalDamage) setTotalDamage(result.totalDamage.toString());
-        if (result.ticketDamage) setTicketDamage(result.ticketDamage.toString());
-        setStatusMessage("✓ CRISTALIZACIÓN COMPLETADA");
-      } catch (err) { setStatusMessage("⚠️ FALLO EN SCAN IA"); } 
+        const res = await analyzeDamageScreenshot(base64);
+        if (res.playerName) setPlayerName(res.playerName);
+        if (res.totalDamage) setTotalDamage(res.totalDamage.toString());
+        if (res.ticketDamage) setTicketDamage(res.ticketDamage.toString());
+        setStatus("✓ GRABACIÓN PROCESADA");
+      } catch (err) { setStatus("⚠️ ERROR DE SINTONÍA"); }
       finally { setIsAnalyzing(false); }
     };
     reader.readAsDataURL(file);
@@ -56,95 +51,85 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName || !ticketDamage) return alert("Faltan coordenadas de daño.");
+    if (!playerName || !ticketDamage) return alert("Faltan datos de la performance");
     setIsSaving(true);
-    setStatusMessage("CONECTANDO CON SUPABASE...");
+    setStatus("SUBIENDO A LOS CHARTS...");
 
     try {
       const record = {
         playerName,
-        guild,
+        guild: 'Principal' as any,
         recordType: (isFirstEntry ? 'INITIAL' : 'INCREMENTAL') as RecordType,
-        totalDamage: parseInt(totalDamage.toString().replace(/\D/g, '') || '0'),
-        ticketDamage: parseInt(ticketDamage.toString().replace(/\D/g, '') || '0'),
+        totalDamage: parseInt(totalDamage.replace(/\D/g, '') || '0'),
+        ticketDamage: parseInt(ticketDamage.replace(/\D/g, '') || '0'),
         screenshotUrl: previewUrl || undefined,
         discordUser: currentUser!
       };
 
       await saveRecord(record);
 
-      const sStr = localStorage.getItem('lamu_settings');
-      if (sStr) {
-        const settings: AppSettings = JSON.parse(sStr);
-        
-        // 1. Canal de Registros (Logs individuales)
-        if (settings.discordWebhook) {
-          setStatusMessage("ENVIANDO TICKET A DISCORD...");
-          await sendDamageToDiscord(settings.discordWebhook, {
-            playerName: record.playerName,
-            guild: record.guild,
-            damageValue: record.ticketDamage,
-            screenshotUrl: record.screenshotUrl,
-            discordUser: currentUser!
-          });
-        }
-
-        // 2. Canal de Ranking (Tabla actualizada)
-        const rankWebhook = settings.discordRankingWebhook || settings.discordWebhook;
-        if (rankWebhook) {
-          setStatusMessage("TRANSMITIENDO RANKING GLOBAL...");
-          const updatedStats = await getPlayerStats();
-          await sendRankingToDiscord(rankWebhook, updatedStats);
-        }
+      const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
+      
+      // Enviar a logs
+      if (s.discordWebhook) {
+        await sendDamageToDiscord(s.discordWebhook, {
+          playerName: record.playerName,
+          guild: 'Locked \'N\' Loaded',
+          damageValue: record.ticketDamage,
+          screenshotUrl: record.screenshotUrl,
+          discordUser: currentUser!
+        });
       }
+
+      // Enviar a Ranking
+      const rankHook = s.discordRankingWebhook || s.discordWebhook;
+      if (rankHook) {
+        const stats = await getPlayerStats();
+        await sendRankingToDiscord(rankHook, stats);
+      }
+
       onSuccess();
-    } catch (err: any) {
-      alert(`ERROR DE RED: ${err.message}`);
-    } finally { setIsSaving(false); }
+    } catch (err: any) { alert(err.message); }
+    finally { setIsSaving(false); }
   };
 
   if (!currentUser) return (
-    <div className="max-w-xl mx-auto py-24 text-center bg-emerald-950/30 rounded-[3rem] p-12 border-2 border-emerald-900/20">
-      <h2 className="text-3xl font-black text-white skull-text italic mb-8">BLOQUEO DE SISTEMA</h2>
-      <button onClick={onLoginRequest} className="w-full bg-emerald-600 py-6 rounded-[2rem] font-black text-emerald-950 uppercase tracking-widest shadow-2xl">Sincronizar Discord</button>
+    <div className="max-w-xl mx-auto py-20 text-center">
+      <button onClick={onLoginRequest} className="w-full bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl font-black text-sky-950 uppercase tracking-widest shadow-2xl transition-all active:scale-95">Inicia Sesión: Backstage</button>
     </div>
   );
 
   return (
     <div className="max-w-xl mx-auto pb-24 animate-in fade-in">
-      <div className="bg-emerald-950/30 rounded-[3rem] p-10 border-2 border-emerald-900/20 shadow-2xl backdrop-blur-md">
-        <div className="mb-6 text-center">
-          <span className="text-[10px] font-black text-emerald-400 animate-pulse uppercase tracking-widest">{statusMessage || (isFirstEntry ? "MODO: REPORTE INICIAL" : "MODO: TICKET DE ASALTO")}</span>
-        </div>
+      <div className="bg-sky-950/30 rounded-[3rem] p-10 border-2 border-sky-900/20 backdrop-blur-xl shadow-2xl">
+        <p className="text-center text-[10px] font-black text-sky-400 uppercase tracking-widest mb-6">{status || "ESTUDIO DE GRABACIÓN"}</p>
         
-        <div onClick={() => !isAnalyzing && fileInputRef.current?.click()} className="mb-10 cursor-pointer group">
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-          {previewUrl ? <img src={previewUrl} className="max-h-72 mx-auto rounded-[2rem] border-2 border-emerald-400 shadow-2xl group-hover:brightness-110 transition-all" /> : 
-          <div className="border-2 border-dashed border-emerald-900/40 rounded-[2.5rem] py-16 text-center bg-black/20 group-hover:border-emerald-500/50 transition-all">
-            <span className="text-5xl drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">📸</span>
-            <p className="text-emerald-800 font-black text-[10px] uppercase mt-5 tracking-[0.3em]">Cargar Captura de Skullgirls</p>
+        <div onClick={() => !isAnalyzing && fileInputRef.current?.click()} className="mb-8 cursor-pointer">
+          <input type="file" ref={fileInputRef} onChange={handleFile} className="hidden" />
+          {previewUrl ? <img src={previewUrl} className="max-h-64 mx-auto rounded-3xl border-2 border-sky-400 shadow-[0_0_30px_rgba(14,165,233,0.3)]" /> : 
+          <div className="border-2 border-dashed border-sky-900/30 rounded-[2.5rem] py-16 text-center bg-black/20 hover:border-sky-400 transition-colors">
+            <span className="text-4xl">🎵</span>
+            <p className="text-sky-800 text-[9px] font-black uppercase mt-4">Capturar Track de Daño</p>
           </div>}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest ml-5">Guerrero de Locked 'N' Loaded</label>
-            <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} className="w-full bg-black/40 border border-emerald-900/30 rounded-2xl px-6 py-5 text-white font-black skull-text italic outline-none focus:border-emerald-400/50 transition-all" />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-sky-700 uppercase tracking-widest ml-2">Nombre del Vocalista</label>
+            <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="NOMBRE DEL GUERRERO" className="w-full bg-black/40 border border-sky-900/30 rounded-2xl px-6 py-4 text-white font-black uppercase text-sm outline-none focus:border-sky-500/50" />
           </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-emerald-800 uppercase ml-5">Daño Base (Total)</label>
-              <input type="text" value={totalDamage} onChange={e => setTotalDamage(e.target.value)} disabled={!isFirstEntry} className={`w-full bg-black/40 border border-emerald-900/30 rounded-2xl px-6 py-5 font-mono font-black ${isFirstEntry ? 'text-white' : 'text-emerald-950 opacity-20 cursor-not-allowed'}`} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-sky-700 uppercase tracking-widest ml-2">Score Base</label>
+              <input type="text" value={totalDamage} onChange={e => setTotalDamage(e.target.value)} disabled={!isFirstEntry} placeholder="DAÑO BASE" className="w-full bg-black/40 border border-sky-900/30 rounded-2xl px-6 py-4 font-mono text-white text-sm" />
             </div>
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-emerald-800 uppercase ml-5">Daño del Ticket</label>
-              <input type="text" value={ticketDamage} onChange={e => setTicketDamage(e.target.value)} className="w-full bg-black/40 border-2 border-emerald-400/30 rounded-2xl px-6 py-5 text-emerald-400 font-mono font-black outline-none focus:border-emerald-400" />
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-sky-400 uppercase tracking-widest ml-2">Score del Verso</label>
+              <input type="text" value={ticketDamage} onChange={e => setTicketDamage(e.target.value)} placeholder="DAÑO TICKET" className="w-full bg-black/40 border-2 border-sky-400/30 rounded-2xl px-6 py-4 font-mono text-sky-400 text-sm outline-none focus:border-sky-400" />
             </div>
           </div>
-
-          <button disabled={isAnalyzing || isSaving} className="w-full wind-gradient py-7 rounded-[2rem] text-emerald-950 font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95 disabled:opacity-30">
-            {isSaving ? 'REGISTRANDO EN NUBE...' : 'CONFIRMAR ASALTO'}
+          <button disabled={isAnalyzing || isSaving} className="w-full bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl text-sky-950 font-black uppercase tracking-widest shadow-[0_0_40px_rgba(14,165,233,0.2)] transition-all active:scale-95">
+            {isSaving ? 'SINCRO EN CURSO...' : 'PUBLICAR SINGLE'}
           </button>
         </form>
       </div>
