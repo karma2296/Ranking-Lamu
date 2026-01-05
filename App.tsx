@@ -134,21 +134,44 @@ const App: React.FC = () => {
           {activeView === ViewMode.DASHBOARD && (
             <div className="relative overflow-hidden ado-gradient border-2 border-sky-400/30 rounded-[2.5rem] p-12 text-center shadow-[0_0_60px_rgba(14,165,233,0.3)] group">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sky-300 to-transparent opacity-50"></div>
-              <div className="relative z-10">
-                <span className="text-xs font-black text-sky-200 uppercase tracking-[0.6em] mb-3 block">Variante: Blue Rose Performance</span>
-                <h2 className="text-5xl md:text-7xl font-black ado-title text-white leading-none mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">ADO REVOLUTION</h2>
-                <p className="text-sky-300/80 font-bold text-[10px] uppercase tracking-[0.4em]">Incursión Nocturna de Gremio - Lamu</p>
+              
+              {/* Siglas M&G como sello de calidad */}
+              <div className="absolute top-6 right-8 rotate-12 opacity-90 pointer-events-none">
+                <div className="border-2 border-sky-400 text-sky-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.4em] shadow-[0_0_15px_rgba(14,165,233,0.6)] backdrop-blur-sm bg-sky-950/20">
+                  M&G
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col items-center">
+                <span className="text-xs font-black text-sky-200 uppercase tracking-[0.6em] mb-4 block opacity-80">Variante: Blue Rose Performance</span>
+                
+                {/* Tipografía ADO REVOLUTION estilo Serif Italic de la imagen */}
+                <div className="flex flex-col leading-none items-center transform group-hover:scale-[1.03] transition-transform duration-500">
+                  <h2 className="text-6xl md:text-8xl font-black ado-title text-white italic drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+                    ADO
+                  </h2>
+                  <h2 className="text-5xl md:text-7xl font-black ado-title text-white italic -mt-2 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+                    REVOLUTION
+                  </h2>
+                </div>
+                
+                <p className="text-sky-300/90 font-bold text-[10px] uppercase tracking-[0.4em] mt-6 border-t border-sky-400/20 pt-4 px-8">
+                  Incursión Nocturna de Gremio - Lamu
+                </p>
               </div>
             </div>
           )}
 
           <div className="flex justify-between items-center border-b border-sky-900/50 pb-8">
             <div>
-              <h1 className="text-3xl font-black text-white ado-title">
-                {activeView === ViewMode.DASHBOARD ? 'CHART TOPPERS' : 
-                 activeView === ViewMode.HISTORY ? 'ARCHIVOS BLUE' : 
-                 activeView === ViewMode.SETTINGS ? 'CONSOLA MAESTRA' : 'GRABACIÓN'}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-black text-white ado-title italic">
+                  {activeView === ViewMode.DASHBOARD ? 'CHART TOPPERS' : 
+                   activeView === ViewMode.HISTORY ? 'ARCHIVOS BLUE' : 
+                   activeView === ViewMode.SETTINGS ? 'CONSOLA MAESTRA' : 'GRABACIÓN'}
+                </h1>
+                <span className="text-sky-400 font-black text-[10px] tracking-widest pt-2 bg-sky-950/40 px-2 py-0.5 rounded border border-sky-800/50">M&G</span>
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-sky-400 animate-pulse shadow-[0_0_10px_rgba(14,165,233,0.8)]' : 'bg-rose-500'}`}></div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-sky-600">
@@ -200,7 +223,7 @@ const App: React.FC = () => {
                                 )}
                               </div>
                               <div>
-                                <h4 className="font-black text-white text-base ado-title tracking-tighter">{r.playerName}</h4>
+                                <h4 className="font-black text-white text-base ado-title italic tracking-tighter">{r.playerName}</h4>
                                 <p className="text-[9px] text-sky-700 font-bold uppercase tracking-widest">
                                   {new Date(r.timestamp).toLocaleDateString()}
                                 </p>
@@ -236,7 +259,7 @@ const App: React.FC = () => {
                 !isAdminAuthenticated ? (
                   <div className="max-w-md mx-auto mt-10 p-12 bg-sky-950/20 border-2 border-sky-900/10 rounded-[2.5rem] text-center space-y-8 shadow-2xl backdrop-blur-xl">
                     <div className="space-y-2">
-                      <h2 className="text-2xl font-black text-white ado-title">SECURITY: BLACK NIGHT</h2>
+                      <h2 className="text-2xl font-black text-white ado-title italic">SECURITY: BLACK NIGHT</h2>
                       <p className="text-[10px] text-sky-800 uppercase tracking-widest">Solo para el Staff del Concierto</p>
                     </div>
                     <input 

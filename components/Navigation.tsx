@@ -21,13 +21,13 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
   return (
     <nav className="fixed bottom-0 left-0 right-0 md:relative md:w-64 bg-sky-950/90 backdrop-blur-xl border-t md:border-t-0 md:border-r border-sky-900/30 p-4 z-50 flex flex-col overflow-hidden">
       
-      {/* Arte de fondo exclusivo para el menú estilo Ado - ACTUALIZADO */}
+      {/* Arte de fondo exclusivo para el menú estilo Ado */}
       <div 
         className="absolute inset-0 z-0 pointer-events-none opacity-40 transition-opacity duration-700"
         style={{
           backgroundImage: "url('https://i.pinimg.com/736x/d0/65/3a/d0653a60c753c4c2ae60396c45d46747.jpg')",
           backgroundSize: 'cover',
-          backgroundPosition: 'center 20%', // Ajustado ligeramente hacia arriba para centrar el rostro en el sidebar
+          backgroundPosition: 'center 20%', 
           filter: 'contrast(120%) brightness(60%) hue-rotate(-10deg) saturate(110%)'
         }}
       />
@@ -36,9 +36,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-sky-950/60 via-sky-950/20 to-sky-950 pointer-events-none" />
 
       <div className="relative z-10 hidden md:block mb-10 px-4">
-        <h1 className="text-2xl font-black text-sky-400 ado-title flex items-center gap-2 tracking-tighter drop-shadow-[0_0_15px_rgba(14,165,233,0.8)]">
-          <span>🌹</span> BLUE ROSE
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-black text-sky-400 ado-title flex items-center gap-2 tracking-tighter drop-shadow-[0_0_15px_rgba(14,165,233,0.8)]">
+            <span>🌹</span> BLUE ROSE
+          </h1>
+          <span className="text-[10px] font-black text-sky-500/80 tracking-widest">M&G</span>
+        </div>
         <p className="text-[8px] text-sky-300/80 font-bold uppercase tracking-[0.3em] mt-1 drop-shadow-md">Ado Revolution</p>
       </div>
 
@@ -70,7 +73,10 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
               />
               <div className="overflow-hidden">
                 <p className="text-[10px] font-black text-white truncate uppercase tracking-tighter">{currentUser.username}</p>
-                <p className="text-[8px] text-sky-400 font-bold uppercase tracking-widest">Backstage</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[8px] text-sky-400 font-bold uppercase tracking-widest">Backstage</p>
+                  <span className="text-[7px] text-sky-600 font-black">M&G</span>
+                </div>
               </div>
             </div>
             <button 
