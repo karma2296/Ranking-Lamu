@@ -33,7 +33,10 @@ export interface PlayerStats {
 export interface AppSettings {
   discordWebhook: string;
   discordRankingWebhook: string; 
-  customAppUrl?: string; // Nuevo: URL manual para botones
+  recruitmentWebhook?: string;
+  lamuG1Open?: boolean;
+  lamuG2Open?: boolean;
+  customAppUrl?: string; 
   supabaseUrl: string;
   supabaseKey: string;
   guildName: string;
@@ -45,5 +48,6 @@ export enum ViewMode {
   DASHBOARD = 'DASHBOARD',
   ADD_ENTRY = 'ADD_ENTRY',
   HISTORY = 'HISTORY',
-  SETTINGS = 'SETTINGS'
+  SETTINGS = 'SETTINGS',
+  JOIN = 'JOIN'
 }

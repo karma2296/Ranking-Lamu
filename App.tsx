@@ -4,6 +4,7 @@ import Navigation from './components/Navigation';
 import RankingTable from './components/RankingTable';
 import AddDamageForm from './components/AddDamageForm';
 import Settings from './components/Settings';
+import JoinForm from './components/JoinForm';
 import { ViewMode, PlayerStats, DamageRecord, DiscordUser } from './types';
 import { getPlayerStats, getRecords, isCloudConnected, checkAndPerformAutoReset, deleteRecord, getRecordScreenshot } from './services/dbService';
 
@@ -17,6 +18,13 @@ const App: React.FC = () => {
   const [cloudStatus, setCloudStatus] = useState<'connected' | 'local'>('local');
   const [currentUser, setCurrentUser] = useState<DiscordUser | null>(null);
   
+  // Autenticación de Miembro (LamuG2026)
+  const [isMemberAuthenticated, setIsMemberAuthenticated] = useState(() => {
+    return sessionStorage.getItem('lamu_member_auth') === 'true';
+  });
+  const [memberPasswordInput, setMemberPasswordInput] = useState('');
+
+  // Autenticación de Admin (admin123)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return sessionStorage.getItem('lamu_admin_auth') === 'true';
   });
@@ -78,35 +86,6 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
-  const handleLoadImage = async (id: string) => {
-    if (loadedScreenshots[id]) return;
-    const img = await getRecordScreenshot(id);
-    if (img) {
-      setLoadedScreenshots(prev => ({ ...prev, [id]: img }));
-    }
-  };
-
-  const handleDeleteEntry = async (id: string) => {
-    if (!window.confirm("¿Borrar esta estrofa del historial?")) return;
-    
-    setIsDeletingId(id);
-    try {
-      await deleteRecord(id);
-      await refreshData();
-    } catch (e) {
-      alert("Error al borrar el registro");
-    } finally {
-      setIsDeletingId(null);
-    }
-  };
-
-  const loginWithDiscord = () => {
-    const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
-    if (!s.discordClientId) return alert("Falta Discord Client ID.");
-    const url = `https://discord.com/api/oauth2/authorize?client_id=${s.discordClientId}&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&response_type=token&scope=identify`;
-    window.location.href = url;
-  };
-
   const handleAdminLogin = () => {
     const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
     const correctPass = s.adminPassword || 'admin123';
@@ -118,13 +97,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleMemberLogin = () => {
+    if (memberPasswordInput === "LamuG2026") {
+      setIsMemberAuthenticated(true);
+      sessionStorage.setItem('lamu_member_auth', 'true');
+    } else {
+      alert("Contraseña de Miembro incorrecta.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-transparent text-sky-50 relative z-10">
       <Navigation 
         activeView={activeView} 
         onViewChange={setActiveView} 
         currentUser={currentUser} 
-        onLogin={loginWithDiscord} 
+        onLogin={() => {}} // Se maneja internamente si es necesario
         onLogout={() => { localStorage.removeItem('lamu_discord_user'); setCurrentUser(null); }} 
       />
       
@@ -134,30 +122,18 @@ const App: React.FC = () => {
           {activeView === ViewMode.DASHBOARD && (
             <div className="relative overflow-hidden ado-gradient border-2 border-sky-400/30 rounded-[2.5rem] p-12 text-center shadow-[0_0_60px_rgba(14,165,233,0.3)] group">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sky-300 to-transparent opacity-50"></div>
-              
-              {/* Siglas M&G como sello de calidad */}
               <div className="absolute top-6 right-8 rotate-12 opacity-90 pointer-events-none">
                 <div className="border-2 border-sky-400 text-sky-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.4em] shadow-[0_0_15px_rgba(14,165,233,0.6)] backdrop-blur-sm bg-sky-950/20">
                   M&G
                 </div>
               </div>
-
               <div className="relative z-10 flex flex-col items-center">
                 <span className="text-xs font-black text-sky-200 uppercase tracking-[0.6em] mb-4 block opacity-80">Variante: Blue Rose Performance</span>
-                
-                {/* Tipografía ADO REVOLUTION estilo Serif Italic de la imagen */}
                 <div className="flex flex-col leading-none items-center transform group-hover:scale-[1.03] transition-transform duration-500">
-                  <h2 className="text-6xl md:text-8xl font-black ado-title text-white italic drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
-                    ADO
-                  </h2>
-                  <h2 className="text-5xl md:text-7xl font-black ado-title text-white italic -mt-2 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
-                    REVOLUTION
-                  </h2>
+                  <h2 className="text-6xl md:text-8xl font-black ado-title text-white italic drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">ADO</h2>
+                  <h2 className="text-5xl md:text-7xl font-black ado-title text-white italic -mt-2 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">REVOLUTION</h2>
                 </div>
-                
-                <p className="text-sky-300/90 font-bold text-[10px] uppercase tracking-[0.4em] mt-6 border-t border-sky-400/20 pt-4 px-8">
-                  Incursión Nocturna de Gremio - Lamu
-                </p>
+                <p className="text-sky-300/90 font-bold text-[10px] uppercase tracking-[0.4em] mt-6 border-t border-sky-400/20 pt-4 px-8">Incursión Nocturna de Gremio - Lamu</p>
               </div>
             </div>
           )}
@@ -168,15 +144,10 @@ const App: React.FC = () => {
                 <h1 className="text-3xl font-black text-white ado-title italic">
                   {activeView === ViewMode.DASHBOARD ? 'CHART TOPPERS' : 
                    activeView === ViewMode.HISTORY ? 'ARCHIVOS BLUE' : 
-                   activeView === ViewMode.SETTINGS ? 'CONSOLA MAESTRA' : 'GRABACIÓN'}
+                   activeView === ViewMode.SETTINGS ? 'CONSOLA MAESTRA' : 
+                   activeView === ViewMode.JOIN ? 'RECLUTAMIENTO' : 'GRABACIÓN'}
                 </h1>
                 <span className="text-sky-400 font-black text-[10px] tracking-widest pt-2 bg-sky-950/40 px-2 py-0.5 rounded border border-sky-800/50">M&G</span>
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${cloudStatus === 'connected' ? 'bg-sky-400 animate-pulse shadow-[0_0_10px_rgba(14,165,233,0.8)]' : 'bg-rose-500'}`}></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-sky-600">
-                  {cloudStatus === 'connected' ? 'CONEXIÓN CIAN ESTABLE' : 'MEMORIA LOCAL'}
-                </span>
               </div>
             </div>
             <button onClick={refreshData} className="p-4 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-800/30 rounded-2xl transition-all active:scale-90 shadow-lg">
@@ -187,97 +158,68 @@ const App: React.FC = () => {
           {isLoading ? (
             <div className="h-64 flex flex-col items-center justify-center gap-4">
               <div className="w-12 h-12 border-4 border-sky-900/30 border-t-sky-400 rounded-full animate-spin"></div>
-              <span className="text-[10px] font-black uppercase text-sky-400 tracking-widest">Sintonizando frecuencias...</span>
+              <span className="text-[10px] font-black uppercase text-sky-400 tracking-widest">Sintonizando...</span>
             </div>
           ) : (
             <div className="animate-in fade-in duration-500">
+              
+              {/* VISTAS PÚBLICAS */}
               {activeView === ViewMode.DASHBOARD && <RankingTable stats={stats} />}
-              
+              {activeView === ViewMode.JOIN && <JoinForm />}
+
+              {/* VISTA PROTEGIDA PARA MIEMBROS (LamuG2026) */}
               {activeView === ViewMode.ADD_ENTRY && (
-                <AddDamageForm 
-                  currentUser={currentUser} 
-                  onLoginRequest={loginWithDiscord} 
-                  onSuccess={() => { refreshData(); setActiveView(ViewMode.DASHBOARD); }} 
-                />
+                !isMemberAuthenticated ? (
+                  <div className="max-w-md mx-auto mt-10 p-12 bg-sky-950/20 border-2 border-sky-900/10 rounded-[2.5rem] text-center space-y-8 shadow-2xl backdrop-blur-xl">
+                    <h2 className="text-2xl font-black text-white ado-title italic">ACCESO MIEMBROS</h2>
+                    <input 
+                      type="password" 
+                      value={memberPasswordInput} 
+                      onChange={(e) => setMemberPasswordInput(e.target.value)} 
+                      placeholder="CONTRASEÑA MIEMBRO" 
+                      className="w-full bg-black/40 border-2 border-sky-900/20 rounded-2xl px-6 py-4 text-center text-sky-400 font-mono outline-none" 
+                    />
+                    <button onClick={handleMemberLogin} className="w-full bg-sky-600 text-sky-950 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Sincronizar</button>
+                  </div>
+                ) : (
+                  <AddDamageForm 
+                    currentUser={currentUser} 
+                    onLoginRequest={() => {}} 
+                    onSuccess={() => { refreshData(); setActiveView(ViewMode.DASHBOARD); }} 
+                  />
+                )
               )}
-              
-              {activeView === ViewMode.HISTORY && (
-                <div className="grid gap-4">
-                  {history.length > 0 ? (
-                    <div className="space-y-4">
-                      {history.map(r => (
-                        <div key={r.id} className="bg-sky-950/20 p-6 rounded-[2rem] border border-sky-900/20 group hover:border-sky-400/40 transition-all backdrop-blur-sm">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                              <div className="relative">
-                                {loadedScreenshots[r.id] ? (
-                                  <img src={loadedScreenshots[r.id]} className="w-16 h-16 rounded-2xl object-cover border-2 border-sky-800 shadow-2xl" />
-                                ) : (
-                                  <button 
-                                    onClick={() => handleLoadImage(r.id)}
-                                    className="w-16 h-16 rounded-2xl bg-black/40 flex flex-col items-center justify-center border-2 border-dashed border-sky-800/30 hover:border-sky-400 transition-colors group"
-                                  >
-                                    <span className="text-xl group-hover:scale-125 transition-transform text-sky-300">🎵</span>
-                                    <span className="text-[8px] font-black text-sky-700 uppercase mt-1">REC</span>
-                                  </button>
-                                )}
-                              </div>
-                              <div>
-                                <h4 className="font-black text-white text-base ado-title italic tracking-tighter">{r.playerName}</h4>
-                                <p className="text-[9px] text-sky-700 font-bold uppercase tracking-widest">
-                                  {new Date(r.timestamp).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <span className="block font-mono font-black text-sky-400 text-xl leading-none">{r.ticketDamage.toLocaleString()}</span>
-                                <span className="text-[8px] text-sky-900 font-black uppercase tracking-widest mt-1 block">SCORE</span>
-                              </div>
-                              {isAdminAuthenticated && (
-                                <button onClick={() => handleDeleteEntry(r.id)} disabled={isDeletingId === r.id} className="p-3 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all">
-                                  {isDeletingId === r.id ? '...' : '🗑️'}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          {loadedScreenshots[r.id] && (
-                            <div className="mt-4 animate-in slide-in-from-top-4 duration-500">
-                              <img src={loadedScreenshots[r.id]} className="w-full rounded-[1.5rem] border-2 border-sky-900/30 shadow-inner" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-20 text-center text-sky-900 uppercase text-[10px] tracking-[0.5em]">El escenario está en silencio</div>
-                  )}
-                </div>
-              )}
-              
-              {activeView === ViewMode.SETTINGS && (
+
+              {/* VISTA PROTEGIDA PARA STAFF (admin123) */}
+              {(activeView === ViewMode.HISTORY || activeView === ViewMode.SETTINGS) && (
                 !isAdminAuthenticated ? (
                   <div className="max-w-md mx-auto mt-10 p-12 bg-sky-950/20 border-2 border-sky-900/10 rounded-[2.5rem] text-center space-y-8 shadow-2xl backdrop-blur-xl">
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-black text-white ado-title italic">SECURITY: BLACK NIGHT</h2>
-                      <p className="text-[10px] text-sky-800 uppercase tracking-widest">Solo para el Staff del Concierto</p>
-                    </div>
+                    <h2 className="text-2xl font-black text-white ado-title italic">SECURITY: BLACK NIGHT</h2>
                     <input 
                       type="password" 
                       value={adminPasswordInput} 
                       onChange={(e) => setAdminPasswordInput(e.target.value)} 
                       placeholder="FIRMA VOCAL" 
-                      className="w-full bg-black/40 border-2 border-sky-900/20 rounded-2xl px-6 py-4 text-center text-sky-400 focus:border-sky-500/50 outline-none transition-all font-mono" 
+                      className="w-full bg-black/40 border-2 border-sky-900/20 rounded-2xl px-6 py-4 text-center text-rose-400 font-mono outline-none" 
                     />
-                    <button 
-                      onClick={handleAdminLogin} 
-                      className="w-full bg-sky-600 hover:bg-sky-500 text-sky-950 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl shadow-sky-900/20"
-                    >
-                      Autorizar Consola
-                    </button>
+                    <button onClick={handleAdminLogin} className="w-full bg-rose-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Autorizar</button>
                   </div>
-                ) : <Settings stats={stats} onReset={refreshData} />
+                ) : (
+                  activeView === ViewMode.SETTINGS ? <Settings stats={stats} onReset={refreshData} /> : (
+                    <div className="space-y-4">
+                      {history.map(r => (
+                        <div key={r.id} className="bg-sky-950/20 p-6 rounded-[2rem] border border-sky-900/20 group hover:border-sky-400/40 backdrop-blur-sm">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-black text-white text-base ado-title italic">{r.playerName}</h4>
+                            <span className="font-mono font-black text-sky-400">{r.ticketDamage.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )
               )}
+
             </div>
           )}
         </div>

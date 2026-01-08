@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { analyzeDamageScreenshot } from '../services/geminiService';
 import { saveRecord, hasUserStartedSeason, getPlayerStats } from '../services/dbService';
 import { sendDamageToDiscord, sendRankingToDiscord } from '../services/discordService';
-import { DiscordUser, RecordType, AppSettings } from '../types';
+import { DiscordUser, RecordType } from '../types';
 
 interface AddDamageFormProps {
   onSuccess: () => void;
@@ -63,25 +63,23 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
         totalDamage: parseInt(totalDamage.replace(/\D/g, '') || '0'),
         ticketDamage: parseInt(ticketDamage.replace(/\D/g, '') || '0'),
         screenshotUrl: previewUrl || undefined,
-        discordUser: currentUser!
+        discordUser: currentUser || { id: 'whatsapp_user', username: playerName } // Fallback para usuarios sin Discord
       };
 
       await saveRecord(record);
 
       const s = JSON.parse(localStorage.getItem('lamu_settings') || '{}');
       
-      // Enviar a logs
       if (s.discordWebhook) {
         await sendDamageToDiscord(s.discordWebhook, {
           playerName: record.playerName,
           guild: 'Locked \'N\' Loaded',
           damageValue: record.ticketDamage,
           screenshotUrl: record.screenshotUrl,
-          discordUser: currentUser!
+          discordUser: record.discordUser as DiscordUser
         });
       }
 
-      // Enviar a Ranking
       const rankHook = s.discordRankingWebhook || s.discordWebhook;
       if (rankHook) {
         const stats = await getPlayerStats();
@@ -92,12 +90,6 @@ const AddDamageForm: React.FC<AddDamageFormProps> = ({ onSuccess, currentUser, o
     } catch (err: any) { alert(err.message); }
     finally { setIsSaving(false); }
   };
-
-  if (!currentUser) return (
-    <div className="max-w-xl mx-auto py-20 text-center">
-      <button onClick={onLoginRequest} className="w-full bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl font-black text-sky-950 uppercase tracking-widest shadow-2xl transition-all active:scale-95">Inicia Sesión: Backstage</button>
-    </div>
-  );
 
   return (
     <div className="max-w-xl mx-auto pb-24 animate-in fade-in">

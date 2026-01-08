@@ -14,6 +14,9 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
     const defaultSettings: AppSettings = {
       discordWebhook: '', 
       discordRankingWebhook: '',
+      recruitmentWebhook: '',
+      lamuG1Open: true,
+      lamuG2Open: true,
       customAppUrl: '',
       supabaseUrl: '', 
       supabaseKey: '', 
@@ -36,7 +39,6 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
   const [saved, setSaved] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   
-  // Estados para el ajuste manual de miembros
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [manualBaseScore, setManualBaseScore] = useState('');
   const [isUpdatingMember, setIsUpdatingMember] = useState(false);
@@ -51,10 +53,8 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
 
   const handleManualUpdate = async () => {
     if (!selectedMemberId || !manualBaseScore) return alert("Selecciona un miembro y define el nuevo score.");
-    
     const score = parseInt(manualBaseScore.replace(/\D/g, ''));
     if (isNaN(score)) return alert("Score no válido.");
-
     setIsUpdatingMember(true);
     try {
       await updateInitialDamage(selectedMemberId, score);
@@ -83,15 +83,58 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
       {/* LINK MAESTRO */}
       <div className="bg-sky-950/20 border border-sky-500/30 rounded-[2rem] p-6 shadow-xl backdrop-blur-sm">
         <h3 className="text-[10px] font-black text-sky-500 uppercase tracking-[0.3em] mb-4 text-center">Sincronización de Dispositivos: Blue Mesh</h3>
-        <button 
-          onClick={generateMaestroLink} 
-          className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] transition-all shadow-lg ${copiedLink ? 'bg-sky-400 text-sky-950 shadow-[0_0_20px_#0ea5e9]' : 'bg-indigo-600/80 text-white hover:bg-indigo-600'}`}
-        >
+        <button onClick={generateMaestroLink} className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] transition-all shadow-lg ${copiedLink ? 'bg-sky-400 text-sky-950 shadow-[0_0_20px_#0ea5e9]' : 'bg-indigo-600/80 text-white hover:bg-indigo-600'}`}>
           {copiedLink ? '✓ ENLACE DE CONFIGURACIÓN COPIADO' : 'COPIAR LINK MAESTRO'}
         </button>
       </div>
 
-      {/* AJUSTE MANUAL DE MIEMBROS */}
+      {/* RECLUTAMIENTO CONTROL */}
+      <div className="bg-[#050b18]/95 border-2 border-indigo-400/20 rounded-[2.5rem] p-8 md:p-12 shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-2 h-2 bg-indigo-400 rounded-full shadow-[0_0_10px_#818cf8]"></div>
+          <h4 className="text-xl font-black text-white ado-title italic">Control de Reclutamiento</h4>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
+          <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-sky-900/30">
+            <div>
+              <p className="text-white font-black text-xs">LAMU (G1)</p>
+              <p className="text-[9px] text-sky-600 uppercase font-bold">Estado de los Cupos</p>
+            </div>
+            <button 
+              onClick={() => setSettings(prev => ({...prev, lamuG1Open: !prev.lamuG1Open}))}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black transition-all ${settings.lamuG1Open ? 'bg-sky-500 text-sky-950' : 'bg-rose-500 text-white'}`}
+            >
+              {settings.lamuG1Open ? 'ABIERTOS' : 'CERRADOS'}
+            </button>
+          </div>
+          <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-sky-900/30">
+            <div>
+              <p className="text-white font-black text-xs">LAMU II (G2)</p>
+              <p className="text-[9px] text-sky-600 uppercase font-bold">Estado de los Cupos</p>
+            </div>
+            <button 
+              onClick={() => setSettings(prev => ({...prev, lamuG2Open: !prev.lamuG2Open}))}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black transition-all ${settings.lamuG2Open ? 'bg-sky-500 text-sky-950' : 'bg-rose-500 text-white'}`}
+            >
+              {settings.lamuG2Open ? 'ABIERTOS' : 'CERRADOS'}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest ml-1">Webhook de Reclutamiento</label>
+          <input 
+            type="text" 
+            value={settings.recruitmentWebhook || ''} 
+            onChange={e => setSettings(prev => ({...prev, recruitmentWebhook: e.target.value}))} 
+            className="w-full bg-[#0a1224] border border-indigo-900/40 rounded-2xl px-6 py-5 text-indigo-300 font-mono text-xs focus:border-indigo-400/50 outline-none transition-all" 
+            placeholder="Webhook exclusivo para postulantes..."
+          />
+        </div>
+      </div>
+
+      {/* AJUSTE MANUAL */}
       <div className="bg-[#050b18]/95 border-2 border-sky-400/20 rounded-[2.5rem] p-8 md:p-12 shadow-2xl backdrop-blur-md">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-2 h-2 bg-sky-400 rounded-full shadow-[0_0_10px_#0ea5e9]"></div>
@@ -101,11 +144,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
         <div className="grid md:grid-cols-2 gap-6 items-end">
           <div className="space-y-3">
             <label className="text-[9px] font-black text-sky-700 uppercase tracking-widest ml-1">Seleccionar Miembro</label>
-            <select 
-              value={selectedMemberId}
-              onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="w-full bg-[#0a1224] border border-sky-900/40 rounded-2xl px-6 py-4 text-sky-300 font-bold text-xs outline-none focus:border-sky-400/50 appearance-none"
-            >
+            <select value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)} className="w-full bg-[#0a1224] border border-sky-900/40 rounded-2xl px-6 py-4 text-sky-300 font-bold text-xs outline-none focus:border-sky-400/50 appearance-none">
               <option value="">-- ELIGE UN VOCALISTA --</option>
               {stats.map(p => (
                 <option key={p.discordUser?.id} value={p.discordUser?.id}>
@@ -117,84 +156,46 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
           <div className="space-y-3">
             <label className="text-[9px] font-black text-sky-700 uppercase tracking-widest ml-1">Nuevo Daño Base (INITIAL)</label>
             <div className="flex gap-3">
-              <input 
-                type="text" 
-                value={manualBaseScore}
-                onChange={(e) => setManualBaseScore(e.target.value)}
-                placeholder="NUEVO VALOR"
-                className="flex-1 bg-[#0a1224] border border-sky-900/40 rounded-2xl px-6 py-4 text-white font-mono text-xs focus:border-sky-400/50 outline-none transition-all"
-              />
-              <button 
-                onClick={handleManualUpdate}
-                disabled={isUpdatingMember || !selectedMemberId}
-                className="bg-sky-600 hover:bg-sky-500 disabled:bg-sky-900 disabled:opacity-30 text-sky-950 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
-              >
+              <input type="text" value={manualBaseScore} onChange={(e) => setManualBaseScore(e.target.value)} placeholder="NUEVO VALOR" className="flex-1 bg-[#0a1224] border border-sky-900/40 rounded-2xl px-6 py-4 text-white font-mono text-xs focus:border-sky-400/50 outline-none transition-all" />
+              <button onClick={handleManualUpdate} disabled={isUpdatingMember || !selectedMemberId} className="bg-sky-600 hover:bg-sky-500 disabled:bg-sky-900 disabled:opacity-30 text-sky-950 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
                 {isUpdatingMember ? '...' : 'CORREGIR'}
               </button>
             </div>
           </div>
         </div>
-        <p className="text-[8px] text-sky-900 font-bold uppercase tracking-widest mt-4 text-center italic">
-          * Esto cambiará permanentemente el registro de "Daño Base" de la temporada para este usuario.
-        </p>
       </div>
 
-      {/* TERMINAL PRINCIPAL */}
+      {/* TERMINAL PRINCIPAL - CONFORME A CAPTURA */}
       <div className="bg-[#050b18]/95 border border-sky-900/30 rounded-[2.5rem] p-8 md:p-12 shadow-2xl backdrop-blur-md relative overflow-hidden">
-        
         <div className="flex items-center gap-3 mb-10">
           <div className="w-2 h-2 bg-sky-400 rounded-full animate-pulse shadow-[0_0_10px_#0ea5e9]"></div>
           <h4 className="text-[10px] font-black text-sky-400 uppercase tracking-[0.4em]">Mesa de Mezclas de Webhooks</h4>
         </div>
         
         <div className="space-y-8">
-          
-          {/* ACCESOS */}
+          {/* ACCESOS STAFF */}
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-3">
               <label className="text-[9px] font-black text-sky-800 uppercase tracking-widest ml-1">Discord Client ID</label>
-              <input 
-                type="text" 
-                value={settings.discordClientId || ''} 
-                onChange={e => setSettings(prev => ({...prev, discordClientId: e.target.value}))} 
-                className="w-full bg-[#0a1224] border border-sky-900/30 rounded-2xl px-6 py-5 text-white font-mono text-xs focus:border-sky-500/50 outline-none transition-all" 
-                placeholder="ID de la App de Discord"
-              />
+              <input type="text" value={settings.discordClientId || ''} onChange={e => setSettings(prev => ({...prev, discordClientId: e.target.value}))} className="w-full bg-[#0a1224] border border-sky-900/30 rounded-2xl px-6 py-5 text-white font-mono text-xs focus:border-sky-500/50 outline-none transition-all" placeholder="ID de la App de Discord" />
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-sky-800 uppercase tracking-widest ml-1">Admin Password</label>
-              <input 
-                type="text" 
-                value={settings.adminPassword || ''} 
-                onChange={e => setSettings(prev => ({...prev, adminPassword: e.target.value}))} 
-                className="w-full bg-[#0a1224] border border-sky-900/30 rounded-2xl px-6 py-5 text-white font-mono text-xs focus:border-sky-500/50 outline-none transition-all" 
-                placeholder="Password de Administrador"
-              />
+              <input type="text" value={settings.adminPassword || ''} onChange={e => setSettings(prev => ({...prev, adminPassword: e.target.value}))} className="w-full bg-[#0a1224] border border-sky-900/30 rounded-2xl px-6 py-5 text-white font-mono text-xs focus:border-sky-500/50 outline-none transition-all" placeholder="Password de Administrador" />
             </div>
           </div>
 
-          {/* WEBHOOKS Y URL MANUAL */}
           <div className="space-y-6 pt-4 border-t border-sky-900/30">
             <div className="space-y-3">
               <label className="text-[9px] font-black text-sky-400 uppercase tracking-widest ml-1">Webhook: Performance Logs (Canal 1)</label>
-              <input 
-                type="text" 
-                value={settings.discordWebhook || ''} 
-                onChange={e => setSettings(prev => ({...prev, discordWebhook: e.target.value}))} 
-                className="w-full bg-[#0a1224] border border-sky-900/40 rounded-2xl px-6 py-5 text-sky-300 font-mono text-xs focus:border-sky-400/50 outline-none transition-all" 
-                placeholder="https://discord.com/api/webhooks/..."
-              />
+              <input type="text" value={settings.discordWebhook || ''} onChange={e => setSettings(prev => ({...prev, discordWebhook: e.target.value}))} className="w-full bg-[#0a1224] border border-sky-900/40 rounded-2xl px-6 py-5 text-sky-300 font-mono text-xs focus:border-sky-400/50 outline-none transition-all" placeholder="https://..." />
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-blue-500 uppercase tracking-widest ml-1">Webhook: Charts Globales (Canal 2)</label>
-              <input 
-                type="text" 
-                value={settings.discordRankingWebhook || ''} 
-                onChange={e => setSettings(prev => ({...prev, discordRankingWebhook: e.target.value}))} 
-                className="w-full bg-[#0a1224] border border-blue-500/20 rounded-2xl px-6 py-5 text-blue-400 font-mono text-xs focus:border-blue-500/50 outline-none transition-all" 
-                placeholder="https://discord.com/api/webhooks/..."
-              />
+              <input type="text" value={settings.discordRankingWebhook || ''} onChange={e => setSettings(prev => ({...prev, discordRankingWebhook: e.target.value}))} className="w-full bg-[#0a1224] border border-blue-500/20 rounded-2xl px-6 py-5 text-blue-400 font-mono text-xs focus:border-blue-500/50 outline-none transition-all" placeholder="https://..." />
             </div>
+
+            {/* URL DESTINO - SEGUN CAPTURA */}
             <div className="space-y-3 pt-2">
               <label className="text-[9px] font-black text-sky-300 uppercase tracking-widest ml-1">URL Destino del Botón "Ver Charts"</label>
               <input 
@@ -208,7 +209,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             </div>
           </div>
 
-          {/* SUPABASE */}
+          {/* CONFIGURACIÓN SUPABASE - SEGUN CAPTURA */}
           <div className="grid md:grid-cols-2 gap-8 pt-4 border-t border-sky-900/30">
             <div className="space-y-3">
               <label className="text-[9px] font-black text-sky-900 uppercase tracking-widest ml-1">Frecuencia URL (Supabase)</label>
@@ -217,7 +218,7 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
                 value={settings.supabaseUrl || ''} 
                 onChange={e => setSettings(prev => ({...prev, supabaseUrl: e.target.value}))} 
                 className="w-full bg-[#0a1224] border border-sky-900/30 rounded-2xl px-6 py-4 text-white font-mono text-[10px]" 
-                placeholder="URL de Supabase"
+                placeholder="https://xwp..."
               />
             </div>
             <div className="space-y-3">
@@ -232,10 +233,8 @@ const Settings: React.FC<SettingsProps> = ({ stats = [], onReset }) => {
             </div>
           </div>
 
-          <button 
-            onClick={handleSave} 
-            className={`w-full py-6 rounded-2xl font-black uppercase text-xs tracking-[0.5em] transition-all shadow-2xl active:scale-95 mt-6 ${saved ? 'bg-sky-400 text-sky-950 scale-[0.98]' : 'bg-sky-600 hover:bg-sky-500 text-sky-950'}`}
-          >
+          {/* BOTON SINCRONIZACION - SEGUN CAPTURA */}
+          <button onClick={handleSave} className={`w-full py-6 rounded-2xl font-black uppercase text-xs tracking-[0.5em] transition-all shadow-2xl active:scale-95 mt-6 ${saved ? 'bg-sky-400 text-sky-950 scale-[0.98]' : 'bg-sky-600 hover:bg-sky-500 text-sky-950 shadow-[0_10px_30px_rgba(14,165,233,0.3)]'}`}>
             {saved ? '✓ FRECUENCIAS SINCRONIZADAS' : 'SINCRO CON EL SERVIDOR'}
           </button>
         </div>

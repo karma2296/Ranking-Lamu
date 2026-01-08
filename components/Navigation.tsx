@@ -13,6 +13,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, currentUser, onLogin, onLogout }) => {
   const navItems = [
     { id: ViewMode.DASHBOARD, label: 'Ranking', icon: '🎤' },
+    { id: ViewMode.JOIN, label: 'Unirse', icon: '📩' },
     { id: ViewMode.ADD_ENTRY, label: 'Grabar', icon: '🎸' },
     { id: ViewMode.HISTORY, label: 'Archivo', icon: '📁' },
     { id: ViewMode.SETTINGS, label: 'Ajustes', icon: '🎚️' },
@@ -21,7 +22,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
   return (
     <nav className="fixed bottom-0 left-0 right-0 md:relative md:w-64 bg-sky-950/90 backdrop-blur-xl border-t md:border-t-0 md:border-r border-sky-900/30 p-4 z-50 flex flex-col overflow-hidden">
       
-      {/* Arte de fondo exclusivo para el menú estilo Ado */}
       <div 
         className="absolute inset-0 z-0 pointer-events-none opacity-40 transition-opacity duration-700"
         style={{
@@ -32,7 +32,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
         }}
       />
       
-      {/* Overlay de degradado para legibilidad del texto */}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-sky-950/60 via-sky-950/20 to-sky-950 pointer-events-none" />
 
       <div className="relative z-10 hidden md:block mb-10 px-4">
@@ -45,19 +44,19 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
         <p className="text-[8px] text-sky-300/80 font-bold uppercase tracking-[0.3em] mt-1 drop-shadow-md">Ado Revolution</p>
       </div>
 
-      <div className="relative z-10 flex md:flex-col justify-around md:justify-start gap-3 flex-1">
+      <div className="relative z-10 flex md:flex-col justify-around md:justify-start gap-3 flex-1 overflow-x-auto md:overflow-x-visible no-scrollbar pb-2 md:pb-0">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onViewChange(item.id)}
-            className={`flex flex-col md:flex-row items-center gap-4 px-5 py-4 rounded-2xl transition-all active:scale-95 border group ${
+            className={`flex flex-col md:flex-row items-center gap-4 px-5 py-3 md:py-4 rounded-2xl transition-all active:scale-95 border group shrink-0 ${
               activeView === item.id
                 ? 'bg-sky-600 border-sky-400 text-sky-950 shadow-[0_0_25px_rgba(14,165,233,0.4)] font-black'
                 : 'text-sky-400/70 border-sky-900/10 hover:bg-sky-900/60 hover:border-sky-500/30 hover:text-sky-300'
             }`}
           >
-            <span className="text-2xl md:text-xl group-hover:scale-110 transition-transform">{item.icon}</span>
-            <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">{item.label}</span>
+            <span className="text-xl md:text-xl group-hover:scale-110 transition-transform">{item.icon}</span>
+            <span className="text-[9px] md:text-xs font-black uppercase tracking-widest">{item.label}</span>
           </button>
         ))}
       </div>
@@ -83,7 +82,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
               onClick={onLogout} 
               className="text-[9px] font-black text-sky-600 hover:text-rose-400 uppercase tracking-[0.3em] text-center transition-colors"
             >
-              Finalizar Show
+              Cerrar Sesión
             </button>
           </div>
         ) : (
@@ -91,7 +90,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, curre
             onClick={onLogin} 
             className="w-full bg-sky-600/20 hover:bg-sky-600 border border-sky-500/40 text-sky-400 hover:text-sky-950 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(0,0,0,0.4)]"
           >
-            Sincro Discord
+            Discord Login
           </button>
         )}
       </div>
